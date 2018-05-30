@@ -1,6 +1,24 @@
 /* eslint-disable */
 import * as utils from 'src/utils';
 
+class Postbid
+{
+  constructor(params) {
+    const DEFAULT = {
+      bidTimeOut: 1000,
+      useIframeResizer: true,
+    };
+    Object.assign(this, DEFAULT, params);
+  }
+
+  run() {
+    if(this.useIframeResizer) {
+      const raw = require('!raw-loader!iframe-resizer/js/iframeResizer.contentWindow');
+      require('iframe-resizer/js/iframeResizer');
+    }
+  }
+}
+
 class RelevantWorker
 {
   constructor(preQueue) {
@@ -33,16 +51,8 @@ class RelevantWorker
   }
 
   doPostbid(param) {
-    const { sizes }
-    const DEFAULT = {
-      bidTimeOut: 1000,
-      useIframeResizer: true,
-
-    };
-    if(useIframeResizer) {
-      require('iframe-resizer/js/iframeResizer');
-    }
-
+    const postbid = new Postbid(param);
+    postbid.run();
   }
 
   push(param) {

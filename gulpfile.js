@@ -323,4 +323,7 @@ gulp.task('escape-postbid-config', function() {
     .pipe(gulp.dest('build/postbid/'));
 });
 
+gulp.__gulpBundle = gulpBundle;
+require('./relevant-tasks');
+
 module.exports = nodeBundle;

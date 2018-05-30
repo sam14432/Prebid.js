@@ -107,6 +107,7 @@
     "core-js": "^2.4.1",
     "gulp-sourcemaps": "^2.6.0",
     "iframe-resizer": "^3.6.1",
-    "just-clone": "^1.0.2"
+    "just-clone": "^1.0.2",
+    "raw-loader": "^0.5.1"
   }
 }
