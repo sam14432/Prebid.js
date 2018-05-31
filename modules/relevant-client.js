@@ -1,31 +1,45 @@
 /* eslint-disable */
 import * as utils from 'src/utils';
 
-class Postbid
+class PostbidAuction
 {
-  constructor(params) {
+  constructor(worker, params) {
+    // other values: bids, sizes, legacyPassbackHtml, IframeResizerMinHeight
     const DEFAULT = {
       bidTimeOut: 1000,
       useIframeResizer: true,
+      enableConsoleLogs: true,
+      enableIframeResizerLogging: false,
+      logIdentifier: 'unknown',
     };
-    Object.assign(this, DEFAULT, params);
+    Object.assign(this, DEFAULT, params, {
+      worker,
+      pbjs: worker.pbjs,
+    });
+  }
+
+  initIframe() {
+    //if()
   }
 
   run() {
     if(this.useIframeResizer) {
-      const raw = require('!raw-loader!iframe-resizer/js/iframeResizer.contentWindow');
-      require('iframe-resizer/js/iframeResizer');
+      //const raw = require('!raw-loader!iframe-resizer/js/iframeResizer.contentWindow');
+      require('iframe-resizer/js/iframeResizer'); // will only run once
     }
+    this.initIframe();
   }
 }
 
 class RelevantWorker
 {
-  constructor(preQueue) {
+  constructor(preQueue, pbjs) {
     this.queue = preQueue || [];
+    this.pbjs = pbjs;
   }
 
   init() {
+    this.pbjs.setConfig({ consentManagement: {} });
     this.queue.forEach(param => this.runCmd(param));
   }
 
@@ -51,7 +65,7 @@ class RelevantWorker
   }
 
   doPostbid(param) {
-    const postbid = new Postbid(param);
+    const postbid = new PostbidAuction(param);
     postbid.run();
   }
 
@@ -63,7 +77,7 @@ class RelevantWorker
 var pbjs = window.pbjs || {};
 pbjs.que = pbjs.que || [];
 pbjs.que.push(function () {
-  window.relevantQueue = new RelevantWorker(window.relevantQueue);
+  window.relevantQueue = new RelevantWorker(window.relevantQueue, pbjs);
   window.relevantQueue.init();
 });
 
