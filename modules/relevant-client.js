@@ -11,6 +11,20 @@ const setSize = (elm, width, height) => {
   }
 };
 
+const asElm = (win, elm) => {
+  if (!elm) {
+    return elm;
+  }
+  if (typeof elm === 'string' || elm instanceof String) {
+    const res = win.document.querySelector(elm);
+    if(!res) {
+      throw Exception(`Failed to find element '${elm}'`);
+    }
+    return res;
+  }
+  return elm;
+};
+
 const PASSBACK_HTML = `
   <!DOCTYPE html>
   <html>
@@ -19,7 +33,7 @@ const PASSBACK_HTML = `
   </head>
   <body style='margin:0px; border:0px; padding:0px;'>
     <script>
-        postbid();
+        passback();
     </script>
   </body>
   </html>      
@@ -100,6 +114,8 @@ class PostbidAuction
     for (const [key, value] of Object.entries(attribs)) {
       iframe.setAttribute(key, value);
     }
+    insertAfter = asElm(win, insertAfter);
+    appendTo = asElm(win, insertAfter);
     if (insertAfter) {
       insertAfter.parentNode.insertBefore(iframe, insertAfter.nextSibling);
     } else if (appendTo) {
@@ -135,7 +151,7 @@ class PostbidAuction
       this.log('Calling passback');
       const ifrDoc = this.iframe.contentWindow.document;
       ifrDoc.open();
-      this.iframe.contentWindow.postbid = () => {
+      this.iframe.contentWindow.passback = () => {
         let { passbackHtml } = this;
         if (!passbackHtml && this.legacyPassbackHtml) {
           passbackHtml = eval("'" + this.legacyPassbackHtml + "'");
@@ -167,12 +183,12 @@ class RelevantWorker
     const CMDS = {
       postbid: param => this.doPostbid(param),
     };
-    try {
+    //try {
       if(!param || !CMDS[param.cmd]) {
         throw `Invalid parameter: ${(param || {}).cmd}`;
       }
-      CMDS[param.cmd](param);
-    } catch(e) {
+      CMDS[param.cmd](param.param);
+    /*} catch(e) {
       utils.logError(`Command error: ${e.message}`);
       if(param.onError) {
         try {
@@ -181,11 +197,11 @@ class RelevantWorker
           utils.logError(`Error in error handler: ${e.message}`);
         }
       }
-    }
+    }*/
   }
 
   doPostbid(param) {
-    const postbid = new PostbidAuction(param);
+    const postbid = new PostbidAuction(this, param);
     postbid.run();
   }
 
