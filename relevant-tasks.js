@@ -26,7 +26,7 @@ gulp.task('relevant-devpack', [], function () {
     });
   }
 
-  return gulp.src([].concat(moduleSources, 'src/prebid.js'))
+  return gulp.src([].concat(moduleSources, 'src/relevant/relevantWorker.js'))
     .pipe(helpers.nameModules(externalModules))
     .pipe(webpackStream(cloned, webpack))
     .pipe(replace('$prebid.version$', prebid.version))

@@ -1,5 +1,6 @@
 /* eslint-disable */
-import * as utils from 'src/utils';
+import * as utils from '../utils';
+import WinSizeCalculator from './winSizeCalculator';
 
 const setSize = (elm, width, height) => {
   const toDim = v => isNaN(v) ? v : v + "px";
@@ -7,7 +8,7 @@ const setSize = (elm, width, height) => {
     elm.style.width = toDim(width);
   }
   if (height != null) {
-    elm.style.height = toDim(width);
+    elm.style.height = toDim(height);
   }
 };
 
@@ -42,12 +43,14 @@ const PASSBACK_HTML = `
 class PostbidAuction
 {
   constructor(worker, params) {
-    // other values: bids, sizes, legacyPassbackHtml, IframeResizerMinHeight
+    // other values: bids, sizes, legacyPassbackHtml,
     // location { win, insertAfter, insertIn }
     const DEFAULT = {
       bidTimeOut: 1000,
       logIdentifier: 'unknown',
       containers: [],
+      minHeight: 0,
+      minWidth: 0,
     };
     Object.assign(this, DEFAULT, params, {
       worker,
@@ -68,16 +71,20 @@ class PostbidAuction
   }
 
   resize(width, height) {
+    width = Math.max(width, this.minWidth);
+    height = Math.max(height, this.minHeight);
+    this.log(`Settings width(${width}) height(${height})`);
     if (!this.hasResized) {
       (this.containers || []).forEach(c => setSize(c, 'auto', 'auto'));
       this.hasResized = true;
     }
-    try {
-      if (this.win.frameElement) {
-        setSize(this.win.frameElement, width, height)
+    setSize(this.iframe, width, height)
+    try { /** Check if there is a parent-iframe we should try to resize */
+      const { frameElement } = this.location.win;
+      if (this.location.win.frameElement) {
+        setSize(frameElement, width, height)
       }
     } catch(e) { /** In un-friendly iframe */ }
-    setSize(this.iframe, width, height);
   }
 
   initIframe() {
@@ -126,6 +133,10 @@ class PostbidAuction
 
   run() {
     this.initIframe();
+    this.pbjs.que.push(() => this.requestBids());
+  }
+
+  requestBids() {
     pbjs.addAdUnits([{
       code: this.unitId,
       sizes: this.sizes,
@@ -144,7 +155,7 @@ class PostbidAuction
       this.log(`Bid won - rendering ad: ${params}`);
       const dimensions = (params.hb_size || '').split('x');
       if(dimensions.length === 2) {
-        this.setSize(dimensions[0], dimensions[1]);
+        this.resize(dimensions[0], dimensions[1]);
       }
       this.pbjs.renderAd(iframeDoc, params.hb_adid);
     } else {
@@ -152,6 +163,13 @@ class PostbidAuction
       const ifrDoc = this.iframe.contentWindow.document;
       ifrDoc.open();
       this.iframe.contentWindow.passback = () => {
+        const szCalc = new WinSizeCalculator({
+          win: this.iframe.contentWindow,
+          onDimensions: (width, height) => {
+            this.resize(width, height);
+          },
+        });
+        szCalc.start();
         let { passbackHtml } = this;
         if (!passbackHtml && this.legacyPassbackHtml) {
           passbackHtml = eval("'" + this.legacyPassbackHtml + "'");
@@ -164,57 +182,4 @@ class PostbidAuction
   }
 }
 
-class RelevantWorker
-{
-  constructor(preQueue, pbjs) {
-    this.queue = preQueue || [];
-    this.pbjs = pbjs;
-  }
-
-  init() {
-    this.pbjs.setConfig({
-      consentManagement: {},
-      debug: location.toString().indexOf('relevant-debug'),
-    });
-    this.queue.forEach(param => this.runCmd(param));
-  }
-
-  runCmd(param) {
-    const CMDS = {
-      postbid: param => this.doPostbid(param),
-    };
-    //try {
-      if(!param || !CMDS[param.cmd]) {
-        throw `Invalid parameter: ${(param || {}).cmd}`;
-      }
-      CMDS[param.cmd](param.param);
-    /*} catch(e) {
-      utils.logError(`Command error: ${e.message}`);
-      if(param.onError) {
-        try {
-          param.onError(e);
-        } catch(e) {
-          utils.logError(`Error in error handler: ${e.message}`);
-        }
-      }
-    }*/
-  }
-
-  doPostbid(param) {
-    const postbid = new PostbidAuction(this, param);
-    postbid.run();
-  }
-
-  push(param) {
-    this.runCmd(param);
-  }
-};
-
-var pbjs = window.pbjs || {};
-pbjs.que = pbjs.que || [];
-pbjs.que.push(function () {
-  window.relevantQueue = new RelevantWorker(window.relevantQueue, pbjs);
-  window.relevantQueue.init();
-});
-
-
+export default PostbidAuction;
