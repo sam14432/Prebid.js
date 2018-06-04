@@ -73,7 +73,7 @@ class PostbidAuction
   resize(width, height) {
     width = Math.max(width, this.minWidth);
     height = Math.max(height, this.minHeight);
-    this.log(`Settings width(${width}) height(${height})`);
+    this.log(`Setting width(${width}) height(${height})`);
     if (!this.hasResized) {
       (this.containers || []).forEach(c => setSize(c, 'auto', 'auto'));
       this.hasResized = true;
@@ -149,7 +149,21 @@ class PostbidAuction
     });
   }
 
+  handlePassback(win) {
+    const szCalc = new WinSizeCalculator({
+      win,
+      onDimensions: (width, height) => this.resize(width, height),
+    });
+    szCalc.start();
+    let { passbackHtml } = this;
+    if (!passbackHtml && this.legacyPassbackHtml) {
+      passbackHtml = eval("'" + this.legacyPassbackHtml + "'");
+    }
+    win.document.write(passbackHtml || '');
+  }
+
   onBidsBack() {
+    const ifrDoc = this.iframe.contentWindow.document;
     var params = this.pbjs.getAdserverTargetingForAdUnitCode(this.unitId);
     if (params && params.hb_adid) {
       this.log(`Bid won - rendering ad: ${params}`);
@@ -157,25 +171,12 @@ class PostbidAuction
       if(dimensions.length === 2) {
         this.resize(dimensions[0], dimensions[1]);
       }
-      this.pbjs.renderAd(iframeDoc, params.hb_adid);
+      this.pbjs.renderAd(ifrDoc, params.hb_adid);
     } else {
       this.log('Calling passback');
-      const ifrDoc = this.iframe.contentWindow.document;
       ifrDoc.open();
-      this.iframe.contentWindow.passback = () => {
-        const szCalc = new WinSizeCalculator({
-          win: this.iframe.contentWindow,
-          onDimensions: (width, height) => {
-            this.resize(width, height);
-          },
-        });
-        szCalc.start();
-        let { passbackHtml } = this;
-        if (!passbackHtml && this.legacyPassbackHtml) {
-          passbackHtml = eval("'" + this.legacyPassbackHtml + "'");
-        }
-        ifrDoc.write(passbackHtml || '');
-      };
+      const win = this.iframe.contentWindow;
+      win.passback = () => this.handlePassback(win);
       ifrDoc.write(PASSBACK_HTML);
       ifrDoc.close();
     }

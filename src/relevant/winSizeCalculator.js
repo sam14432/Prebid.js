@@ -24,6 +24,9 @@ class WinSizeCalculator
   }
 
   check() {
+    if (this.stopped) {
+      return;
+    }
     const { width, height } = this.getDimensions();
     if (isNaN(width) || isNaN(height)) {
       utils.logWarn(`Failed getting dimensions width(${width}) height(${height})`);
@@ -45,6 +48,10 @@ class WinSizeCalculator
     } else {
       this.win.addEventListener('load', this.reCheckFn);
     }
+  }
+
+  stop() {
+    this.stopped = true;
   }
 
 }
