@@ -26,6 +26,20 @@ const asElm = (win, elm) => {
   return elm;
 };
 
+const getAdContainer = (elm) => {
+  if(elm.parentNode) {
+    const grandParent = elm.parentNode.parentNode;
+    if(grandParent && ~(elm.parentNode.getAttribute('id') || '').indexOf('google_ads_iframe_')) {
+      if(grandParent.getAttribute('data-google-query-id')) {
+        return grandParent;
+      } else {
+        return null;
+      }
+    }
+  }
+  return elm.parentNode || elm;
+};
+
 const PASSBACK_HTML = `
   <!DOCTYPE html>
   <html>
@@ -70,9 +84,11 @@ class PostbidAuction
     utils.logInfo(`Postbid: ${this.logIdentifier} - ${str}`);
   }
 
-  resize(width, height) {
-    width = Math.max(width, this.minWidth);
-    height = Math.max(height, this.minHeight);
+  resize(width, height, ignoreMinDims) {
+    if(!ignoreMinDims) {
+      width = Math.max(width, this.minWidth);
+      height = Math.max(height, this.minHeight);
+    }
     this.log(`Settings width(${width}) height(${height})`);
     if (!this.hasResized) {
       (this.containers || []).forEach(c => setSize(c, 'auto', 'auto'));
@@ -81,7 +97,7 @@ class PostbidAuction
     setSize(this.iframe, width, height)
     try { /** Check if there is a parent-iframe we should try to resize */
       const { frameElement } = this.location.win;
-      if (this.location.win.frameElement) {
+      if (frameElement) {
         setSize(frameElement, width, height)
       }
     } catch(e) { /** In un-friendly iframe */ }
@@ -149,6 +165,75 @@ class PostbidAuction
     });
   }
 
+  initGooglePassbackUnit() {
+    const { googlePassbackUnit, initWidth, initHeight, sizes } = this;
+    const gptDivId = `div-gpt-id-${Math.random().toString().substring(2)}-0`;
+    const createDiv = (doc) => {
+      const elm = doc.createElement('div');
+      elm.setAttribute('id', gptDivId);
+      setSize(elm, initWidth, initHeight);
+      return elm;
+    };
+    let adjElm, googletag;
+    try {
+      if(top.checkingCrossDomain) {
+        console.info();
+      }
+      if(this.location.win === top) {
+        adjElm = getAdContainer(this.iframe);
+      } else {
+        const { frameElement } = this.location.win
+        const ownerDoc = (frameElement || {}).ownerDocument || {};
+        if((ownerDoc.defaultView || ownerDoc.parentWindow) === top) {
+          adjElm = getAdContainer(frameElement);
+        }
+      }
+      if(adjElm && top.googletag && top.googletag.pubads()) {
+        googletag = top.googletag;
+      }
+    } catch(e) {}
+    const runInTop = adjElm && googletag;
+    if(runInTop) { // re-use
+      this.gptDiv = createDiv(top.document);
+      adjElm.parentNode.insertBefore(this.gptDiv, adjElm);
+      this.resize(0, 0, true);
+    } else {
+      const win = this.iframe.contentWindow;
+      const doc = win.document;
+      const script = doc.createElement('script');
+      this.gptDiv = createDiv(doc);
+      googletag = win.googletag = { cmd: [] };
+      doc.body.appendChild(this.gptDiv);
+      script.src = 'https://www.googletagservices.com/tag/js/gpt.js';
+      doc.head.appendChild(script);
+    }
+    googletag.cmd.push(() => {
+
+      googletag.pubads().addEventListener('slotRenderEnded', (ev) => {
+        if(ev.slot.getSlotElementId() !== gptDivId) {
+          return;
+        }
+        let [width, height] =  ev.size || [0, 0];
+        width = Math.max(width, this.minWidth);
+        height = Math.max(height, this.minHeight);
+        if(runInTop && ev.size) {
+          setSize(this.gptDiv, width, height);
+        } else {
+          this.resize(width, height);
+        }
+
+      });
+
+      googletag.defineSlot(googlePassbackUnit, sizes, gptDivId).addService(googletag.pubads());
+      if (!runInTop) {
+        //googletag.pubads().enableSyncRendering();
+        googletag.enableServices();
+      }
+      googletag.display(gptDivId);
+    });
+    return !runInTop;
+  }
+
   onBidsBack() {
     var params = this.pbjs.getAdserverTargetingForAdUnitCode(this.unitId);
     if (params && params.hb_adid) {
@@ -163,18 +248,21 @@ class PostbidAuction
       const ifrDoc = this.iframe.contentWindow.document;
       ifrDoc.open();
       this.iframe.contentWindow.passback = () => {
-        const szCalc = new WinSizeCalculator({
-          win: this.iframe.contentWindow,
-          onDimensions: (width, height) => {
-            this.resize(width, height);
-          },
-        });
-        szCalc.start();
-        let { passbackHtml } = this;
-        if (!passbackHtml && this.legacyPassbackHtml) {
-          passbackHtml = eval("'" + this.legacyPassbackHtml + "'");
+        let useWinResizer = true;
+        if(this.googlePassbackUnit) {
+          useWinResizer = this.initGooglePassbackUnit();
+        } else {
+          ifrDoc.write(eval("'" + (this.legacyPassbackHtml || '') + "'"));
         }
-        ifrDoc.write(passbackHtml || '');
+        if(useWinResizer) {
+          const szCalc = new WinSizeCalculator({
+            win: this.iframe.contentWindow,
+            onDimensions: (width, height) => {
+              this.resize(width, height);
+            },
+          });
+          szCalc.start();
+        }
       };
       ifrDoc.write(PASSBACK_HTML);
       ifrDoc.close();
