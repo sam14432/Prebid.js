@@ -170,15 +170,49 @@ class PostbidAuction
     });
   }
 
+  onGooglePassbackRendered(ev) {
+    if(ev.slot.getSlotElementId() !== this.gptDivId) {
+      return;
+    }
+    const ifr = this.gptDiv.getElementsByTagName("iframe")[0];
+    if(!ifr) {
+      this.log("Failed to find passback iframe");
+      return;
+    }
+    if(ev.isEmpty) {
+      setSize(this.gptDiv, Math.max(0, this.minWidth), Math.max(0, this.minHeight));
+      if(!this.passbackRunInTop) {
+        this.resize(0, 0);
+      }
+      return;
+    }
+    setSize(this.gptDiv, 'auto', 'auto');
+    let childIframe;
+    if(this.passbackRunInTop) {
+      this.iframe = ifr;
+      this.location = { win: top };
+    } else {
+      childIframe = ifr;
+    }
+    this.startResizer(childIframe);
+  }
+
+  createGptDiv(doc, withContainer) {
+    const elm = doc.createElement('div');
+    let gptTarget = elm;
+    if(withContainer) {
+      gptTarget = doc.createElement('div');
+      elm.appendChild(gptTarget);
+    }
+    gptTarget.setAttribute('id', this.gptDivId);
+    setSize(elm, this.initWidth, this.initHeight);
+    return elm;
+  };
+
+
   initGooglePassbackUnit() {
     const { googlePassbackUnit, initWidth, initHeight, sizes } = this;
-    const gptDivId = `div-gpt-id-${Math.random().toString().substring(2)}-0`;
-    const createDiv = (doc) => {
-      const elm = doc.createElement('div');
-      elm.setAttribute('id', gptDivId);
-      setSize(elm, initWidth, initHeight);
-      return elm;
-    };
+    this.gptDivId = `div-gpt-id-${Math.random().toString().substring(2)}-0`;
     let adjElm, googletag;
     try {
       if(top.checkingCrossDomain) {
@@ -197,44 +231,42 @@ class PostbidAuction
         googletag = top.googletag;
       }
     } catch(e) {}
-    const runInTop = !this.forcePassbackInIframe && adjElm && googletag;
-    if(runInTop) { // re-use
-      this.gptDiv = createDiv(top.document);
+    this.passbackRunInTop = !!(!this.forcePassbackInIframe && adjElm && googletag);
+    if(this.passbackRunInTop) { // re-use
+      this.gptDiv = this.createGptDiv(top.document, true);
       adjElm.parentNode.insertBefore(this.gptDiv, adjElm);
       this.resize(0, 0, true);
     } else {
       const win = this.iframe.contentWindow;
       const doc = win.document;
       const script = doc.createElement('script');
-      this.gptDiv = createDiv(doc);
+      this.gptDiv = this.createGptDiv(top.document, false);
       googletag = win.googletag = { cmd: [] };
       doc.body.appendChild(this.gptDiv);
       script.src = 'https://www.googletagservices.com/tag/js/gpt.js';
       doc.head.appendChild(script);
     }
     googletag.cmd.push(() => {
-
-      googletag.pubads().addEventListener('slotRenderEnded', (ev) => {
-        if(ev.slot.getSlotElementId() !== gptDivId) {
-          return;
-        }
-        let [width, height] =  ev.size || [0, 0];
-        width = Math.max(width, this.minWidth);
-        height = Math.max(height, this.minHeight);
-        if(runInTop && ev.size) {
-          setSize(this.gptDiv, width, height);
-        } else {
-          this.resize(width, height);
-        }
-
-      });
-      googletag.defineSlot(googlePassbackUnit, sizes, gptDivId).addService(googletag.pubads());
-      if (!runInTop) {
+      googletag.pubads().addEventListener('slotRenderEnded', ev => this.onGooglePassbackRendered(ev));
+      googletag.defineSlot(googlePassbackUnit, sizes, this.gptDivId).addService(googletag.pubads());
+      if (!this.passbackRunInTop) {
         googletag.enableServices();
       }
-      googletag.display(gptDivId);
+      googletag.display(this.gptDivId);
     });
-    return !runInTop;
+  }
+
+  startResizer(childIframe) {
+    const szCalc = new WinSizeCalculator({
+      win: (childIframe || this.iframe).contentWindow,
+      onDimensions: (width, height) => {
+        this.resize(width, height);
+        if(childIframe) {
+          setSize(childIframe, width, height);
+        }
+      },
+    });
+    szCalc.start();
   }
 
   onBidsBack() {
@@ -251,20 +283,11 @@ class PostbidAuction
       this.log('Calling passback');
       ifrDoc.open();
       this.iframe.contentWindow.passback = () => {
-        let useWinResizer = true;
         if(this.googlePassbackUnit) {
-          useWinResizer = this.initGooglePassbackUnit();
+          this.initGooglePassbackUnit();
         } else {
           ifrDoc.write(eval("'" + (this.legacyPassbackHtml || '') + "'"));
-        }
-        if(useWinResizer) {
-          const szCalc = new WinSizeCalculator({
-            win: this.iframe.contentWindow,
-            onDimensions: (width, height) => {
-              this.resize(width, height);
-            },
-          });
-          szCalc.start();
+          this.startResizer();
         }
       };
       ifrDoc.write(PASSBACK_HTML);
