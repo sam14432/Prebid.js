@@ -65,8 +65,13 @@ class PostbidAuction
       containers: [],
       minHeight: 0,
       minWidth: 0,
+      forcePassbackInIframe: false,
     };
-    Object.assign(this, DEFAULT, params, {
+    let pageConfig;
+    try {
+      pageConfig = top.RELEVANT_POSTBID_CONFIG;
+    } catch(e) {}
+    Object.assign(this, DEFAULT, pageConfig || {}, params, {
       worker,
       pbjs: worker.pbjs,
       unitId: `unit_${Math.random().toString().substring(2)}`,
@@ -89,7 +94,7 @@ class PostbidAuction
       width = Math.max(width, this.minWidth);
       height = Math.max(height, this.minHeight);
     }
-    this.log(`Settings width(${width}) height(${height})`);
+    this.log(`Setting width(${width}) height(${height})`);
     if (!this.hasResized) {
       (this.containers || []).forEach(c => setSize(c, 'auto', 'auto'));
       this.hasResized = true;
@@ -192,7 +197,7 @@ class PostbidAuction
         googletag = top.googletag;
       }
     } catch(e) {}
-    const runInTop = adjElm && googletag;
+    const runInTop = !this.forcePassbackInIframe && adjElm && googletag;
     if(runInTop) { // re-use
       this.gptDiv = createDiv(top.document);
       adjElm.parentNode.insertBefore(this.gptDiv, adjElm);
@@ -223,10 +228,8 @@ class PostbidAuction
         }
 
       });
-
       googletag.defineSlot(googlePassbackUnit, sizes, gptDivId).addService(googletag.pubads());
       if (!runInTop) {
-        //googletag.pubads().enableSyncRendering();
         googletag.enableServices();
       }
       googletag.display(gptDivId);
@@ -235,6 +238,7 @@ class PostbidAuction
   }
 
   onBidsBack() {
+    const ifrDoc = this.iframe.contentWindow.document;
     var params = this.pbjs.getAdserverTargetingForAdUnitCode(this.unitId);
     if (params && params.hb_adid) {
       this.log(`Bid won - rendering ad: ${params}`);
@@ -242,10 +246,9 @@ class PostbidAuction
       if(dimensions.length === 2) {
         this.resize(dimensions[0], dimensions[1]);
       }
-      this.pbjs.renderAd(iframeDoc, params.hb_adid);
+      this.pbjs.renderAd(ifrDoc, params.hb_adid);
     } else {
       this.log('Calling passback');
-      const ifrDoc = this.iframe.contentWindow.document;
       ifrDoc.open();
       this.iframe.contentWindow.passback = () => {
         let useWinResizer = true;
