@@ -231,7 +231,7 @@ class PostbidAuction
         googletag = top.googletag;
       }
     } catch(e) {}
-    this.passbackRunInTop = !!(!this.forcePassbackInIframe && adjElm && googletag);
+    this.passbackRunInTop = !!(!this.forcePassbackInIframe && adjElm && googletag && window !== top);
     if(this.passbackRunInTop) { // re-use
       this.gptDiv = this.createGptDiv(top.document, true);
       adjElm.parentNode.insertBefore(this.gptDiv, adjElm);
