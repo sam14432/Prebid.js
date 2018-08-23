@@ -1,6 +1,35 @@
 /* eslint-disable */
 import * as utils from '../utils';
 
+const FillerStyle = {
+  zIndex: '2147483647',
+  position: 'absolute',
+  maxWidth: '100%',
+  maxHeight: '100%',
+  pointerEvents: 'none',
+  imageRendering: 'pixelated',
+};
+
+/** Terrible way to detect the empty "filler" element in google iframes */
+const isFiller = (elm) => {
+  if(elm.tagName !== 'DIV') {
+    return false;
+  }
+  if(elm.children.length) {
+    return false;
+  }
+  const { style } = elm;
+  if(style.background.indexOf('image/png') < 0) {
+    return false;
+  }
+  for(const key in FillerStyle) {
+    if(style[key] !== FillerStyle[key]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 class WinSizeCalculator
 {
   constructor(settings) {
@@ -16,11 +45,26 @@ class WinSizeCalculator
   }
 
   getDimensions() {
+    const MAX_SCAN_LEVEL = 0;
     const doc = this.win.document;
-    return {
-      width: doc.body.scrollWidth,
-      height: doc.documentElement.offsetHeight,
-    };
+    const width = doc.body.scrollWidth;
+    var height = doc.documentElement.offsetHeight;
+    const scanHeight = (elm, level = 0) => {
+      for(let i = 0; i < elm.children.length; i++) {
+        const child = elm.children[i];
+        const newHeight = child.scrollTop + child.offsetHeight;
+        if(newHeight > height && !isFiller(child)) {
+          height = newHeight;
+        }
+        if (level < MAX_SCAN_LEVEL) {
+          scanHeight(child, level + 1);
+        }
+      }
+    }
+    if(!height && doc.body) {
+      scanHeight(doc.body)
+    }
+    return { width, height };
   }
 
   check() {
