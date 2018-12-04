@@ -44,12 +44,16 @@ class RelevantWorker
     }
   }
 
-  doPostbid(param) {
+  postbid(param) {
     const postbid = new PostbidAuction(this, param);
     postbid.run();
   }
 
-  doPostbidPlacement(param) {
+  postbidPlacement(param) {
+
+  }
+
+  registerSiteConfig(param) {
 
   }
 
