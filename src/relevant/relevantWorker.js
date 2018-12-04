@@ -21,12 +21,17 @@ class RelevantWorker
   runCmd(param) {
     const CMDS = {
       postbid: param => this.doPostbid(param),
+      postbidPlacement: param => this.doPostbidPlacement(param),
     };
     try {
-      if(!param || !CMDS[param.cmd]) {
-        throw `Invalid parameter: ${(param || {}).cmd}`;
+      if(utils.isFn(param)) {
+        param(this);
+      } else {
+        if (!param || !CMDS[param.cmd]) {
+          throw `Invalid parameter: ${(param || {}).cmd}`;
+        }
+        CMDS[param.cmd](param.param);
       }
-      CMDS[param.cmd](param.param);
     } catch(e) {
       utils.logError(`Command error: ${e.message}`);
       if(param.onError) {
@@ -44,6 +49,10 @@ class RelevantWorker
     postbid.run();
   }
 
+  doPostbidPlacement(param) {
+
+  }
+
   push(param) {
     this.runCmd(param);
   }
@@ -58,7 +67,9 @@ class RelevantWorker
         const res = orgQueueFn.call(this, ...args);
         if(!initialized) {
           initialized = true;
+          const { loadedSitePaths = {} } = window.relevantQueue;
           window.relevantQueue = new RelevantWorker(window.relevantQueue, pbjs);
+          window.relevantQueue.loadedSitePaths = {};
           window.relevantQueue.init();
         }
         return res;
