@@ -13,7 +13,7 @@ var prebid = require('./package.json');
 
 var port = 9999;
 
-gulp.task('relevant-devpack', [], function () {
+gulp.task('relevant-devpack', function () {
   var cloned = _.cloneDeep(webpackConfig);
   cloned.devtool = 'source-map';
   var externalModules = helpers.getArgModules();
@@ -34,9 +34,7 @@ gulp.task('relevant-devpack', [], function () {
     .pipe(connect.reload());
 });
 
-gulp.task('relevant-build-bundle-dev', ['relevant-devpack'], gulp.__gulpBundle.bind(null, true));
-
-gulp.task('relevant-serve', ['relevant-build-bundle-dev', 'relevant-watch']);
+gulp.task('relevant-build-bundle-dev', gulp.series('relevant-devpack', gulp.__gulpBundle.bind(null, true)));
 
 gulp.task('relevant-watch', function () {
   gulp.watch([
@@ -44,11 +42,11 @@ gulp.task('relevant-watch', function () {
     'modules/**/*.js',
     'test/spec/**/*.js',
     '!test/spec/loaders/**/*.js'
-  ], ['relevant-build-bundle-dev']);
+  ], gulp.series('relevant-build-bundle-dev'));
   gulp.watch([
     'loaders/**/*.js',
     'test/spec/loaders/**/*.js'
-  ], ['lint']);
+  ], gulp.series('lint'));
   connect.server({
     https: argv.https,
     port: port,
@@ -56,3 +54,5 @@ gulp.task('relevant-watch', function () {
     livereload: true
   });
 });
+
+gulp.task('relevant-serve', gulp.series('relevant-build-bundle-dev', 'relevant-watch'));
