@@ -26,11 +26,16 @@ gulp.task('relevant-devpack', [], function () {
     });
   }
 
+  function swallowError(error) {
+    console.log(error.toString())
+    this.emit('end')
+  }
+
   return gulp.src([].concat(moduleSources, 'src/relevant/relevantWorker.js'))
-    .pipe(helpers.nameModules(externalModules))
-    .pipe(webpackStream(cloned, webpack))
-    .pipe(replace('$prebid.version$', prebid.version))
-    .pipe(gulp.dest('build/dev'))
+    .pipe(helpers.nameModules(externalModules)).on('error', swallowError)
+    .pipe(webpackStream(cloned, webpack)).on('error', swallowError)
+    .pipe(replace('$prebid.version$', prebid.version)).on('error', swallowError)
+    .pipe(gulp.dest('build/dev')).on('error', swallowError)
     .pipe(connect.reload());
 });
 

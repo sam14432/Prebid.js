@@ -44,11 +44,12 @@ class WinSizeCalculator
     this.reCheckFn = this.check.bind(this);
   }
 
-  getDimensions() {
+  getDimensions(win, noDocumentOffsetHeight) {
+    win = win || this.win;
     const MAX_SCAN_LEVEL = 0;
-    const doc = this.win.document;
+    const doc = win.document;
     const width = doc.body.scrollWidth;
-    var height = doc.documentElement.offsetHeight;
+    var height = noDocumentOffsetHeight ? 0 : doc.documentElement.offsetHeight;
     const scanHeight = (elm, level = 0) => {
       for(let i = 0; i < elm.children.length; i++) {
         const child = elm.children[i];
@@ -63,6 +64,9 @@ class WinSizeCalculator
     }
     if(!height && doc.body) {
       scanHeight(doc.body)
+    }
+    if (height <= 1 && win.parent !== top) {
+      return this.getDimensions(win.parent, true);
     }
     return { width, height };
   }

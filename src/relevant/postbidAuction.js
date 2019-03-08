@@ -66,6 +66,7 @@ class PostbidAuction
       minHeight: 0,
       minWidth: 0,
       forcePassbackInIframe: false,
+      adserver: 'dfp',
     };
     let pageConfig;
     try {
@@ -83,6 +84,8 @@ class PostbidAuction
     if(!this.initWidth || !this.initHeight) {
       throw Error('sizes invalid');
     }
+    this.adserver = worker.getAdserver(this.adserverType);
+    this.adserver.initPostbidAuction(this);
   }
 
   log(str) {
@@ -143,7 +146,7 @@ class PostbidAuction
       iframe.setAttribute(key, value);
     }
     insertAfter = asElm(win, insertAfter);
-    appendTo = asElm(win, insertAfter);
+    appendTo = asElm(win, appendTo);
     if (insertAfter) {
       insertAfter.parentNode.insertBefore(iframe, insertAfter.nextSibling);
     } else if (appendTo) {
@@ -174,16 +177,16 @@ class PostbidAuction
     if(ev.slot.getSlotElementId() !== this.gptDivId) {
       return;
     }
-    const ifr = this.gptDiv.getElementsByTagName("iframe")[0];
-    if(!ifr) {
-      this.log("Failed to find passback iframe");
-      return;
-    }
     if(ev.isEmpty) {
       setSize(this.gptDiv, Math.max(0, this.minWidth), Math.max(0, this.minHeight));
       if(!this.passbackRunInTop) {
         this.resize(0, 0);
       }
+      return;
+    }
+    const ifr = this.gptDiv.getElementsByTagName("iframe")[0];
+    if(!ifr) {
+      this.log("Failed to find passback iframe");
       return;
     }
     setSize(this.gptDiv, 'auto', 'auto');
@@ -248,6 +251,7 @@ class PostbidAuction
     }
     googletag.cmd.push(() => {
       googletag.pubads().addEventListener('slotRenderEnded', ev => this.onGooglePassbackRendered(ev));
+      //googletag.pubads().collapseEmptyDivs();
       googletag.defineSlot(googlePassbackUnit, sizes, this.gptDivId).addService(googletag.pubads());
       if (!this.passbackRunInTop) {
         googletag.enableServices();
@@ -265,6 +269,8 @@ class PostbidAuction
           setSize(childIframe, width, height);
         }
       },
+      checkIvl: this.sizeCheckIvl || 500,
+      duration: this.sizeCheckDuration || 5000,
     });
     szCalc.start();
   }
