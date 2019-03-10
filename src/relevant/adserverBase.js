@@ -1,5 +1,4 @@
-class AdserverBase
-{
+class AdserverBase {
   initPostbidAuction(auction) {}
 }
 

@@ -11,9 +11,11 @@ var webpackConfig = require('./webpack.conf');
 var helpers = require('./gulpHelpers');
 var prebid = require('./package.json');
 
+const { gulpBundle, clean, lint } = gulp.__passVars;
+
 var port = 9999;
 
-gulp.task('relevant-devpack', [], function () {
+gulp.task('relevant-devpack', function () {
   var cloned = _.cloneDeep(webpackConfig);
   cloned.devtool = 'source-map';
   var externalModules = helpers.getArgModules();
@@ -39,25 +41,25 @@ gulp.task('relevant-devpack', [], function () {
     .pipe(connect.reload());
 });
 
-gulp.task('relevant-build-bundle-dev', ['relevant-devpack'], gulp.__gulpBundle.bind(null, true));
+gulp.task('relevant-build-bundle-dev', gulp.series('relevant-devpack', gulpBundle.bind(null, true)));
 
-gulp.task('relevant-serve', ['relevant-build-bundle-dev', 'relevant-watch']);
-
-gulp.task('relevant-watch', function () {
-  gulp.watch([
+gulp.task('relevant-watch', function (done) {
+  var mainWatcher = gulp.watch([
     'src/**/*.js',
     'modules/**/*.js',
     'test/spec/**/*.js',
     '!test/spec/loaders/**/*.js'
-  ], ['relevant-build-bundle-dev']);
-  gulp.watch([
-    'loaders/**/*.js',
-    'test/spec/loaders/**/*.js'
-  ], ['lint']);
+  ]);
+
   connect.server({
     https: argv.https,
     port: port,
     root: './',
     livereload: true
   });
+
+  mainWatcher.on('all', gulp.series(clean, gulp.parallel(lint, 'relevant-build-bundle-dev')));
+  done();
 });
+
+gulp.task('relevant-serve', gulp.series('relevant-build-bundle-dev', 'relevant-watch'));

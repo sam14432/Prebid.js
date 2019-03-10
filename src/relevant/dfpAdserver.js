@@ -1,7 +1,6 @@
 import AdserverBase from './adserverBase';
 
-class DfpAdserver extends AdserverBase
-{
+class DfpAdserver extends AdserverBase {
 
 }
 

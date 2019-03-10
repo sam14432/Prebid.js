@@ -1,24 +1,37 @@
 import AdserverBase from './adserverBase';
 
-function isAdUnitCode(str) {
-  if(!str || str.length > 100) {
+const isAdUnitCode = (str) => {
+  if (!str || str.length > 100) {
     return false;
   }
   var FORBIDDEN = '<> ';
-  for(var i = 0; i < FORBIDDEN.length; i++) {
-    if(str.indexOf(FORBIDDEN[i]) >= 0) {
+  for (var i = 0; i < FORBIDDEN.length; i++) {
+    if (str.indexOf(FORBIDDEN[i]) >= 0) {
       return false;
     }
   }
   return true;
-}
+};
 
-class SmartAdserver extends AdserverBase
-{
+const extractAdUnitCode = (str) => {
+  const match = /defineSlot\s?\(\s?["'](.*?)["']/.exec(str);
+  return (match || [])[1];
+};
+
+class SmartAdserver extends AdserverBase {
   initPostbidAuction(auction) {
-    if (!auction.googlePassbackUnit && isAdUnitCode(auction.legacyPassbackHtml)) {
-      auction.googlePassbackUnit = `${auction.adunitPathPrepend || ''}${auction.legacyPassbackHtml}`;
-      auction.legacyPassbackHtml = null;
+    const { legacyPassbackHtml, googlePassbackUnit } = auction;
+    if (!googlePassbackUnit && legacyPassbackHtml) {
+      let adUnitCode;
+      if (isAdUnitCode(legacyPassbackHtml)) {
+        adUnitCode = `${auction.adunitPathPrepend || ''}${auction.legacyPassbackHtml}`;
+      } else {
+        adUnitCode = extractAdUnitCode(legacyPassbackHtml);
+      }
+      if (adUnitCode) {
+        auction.googlePassbackUnit = adUnitCode;
+        auction.legacyPassbackHtml = null;
+      }
     }
   }
 }

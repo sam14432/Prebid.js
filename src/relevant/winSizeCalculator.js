@@ -47,43 +47,48 @@ class WinSizeCalculator
   getDimensions(win, noDocumentOffsetHeight) {
     win = win || this.win;
     const MAX_SCAN_LEVEL = 0;
-    const doc = win.document;
-    const width = doc.body.scrollWidth;
-    var height = noDocumentOffsetHeight ? 0 : doc.documentElement.offsetHeight;
-    const scanHeight = (elm, level = 0) => {
-      for(let i = 0; i < elm.children.length; i++) {
-        const child = elm.children[i];
-        const newHeight = child.scrollTop + child.offsetHeight;
-        if(newHeight > height && !isFiller(child)) {
-          height = newHeight;
-        }
-        if (level < MAX_SCAN_LEVEL) {
-          scanHeight(child, level + 1);
+    let width = 0;
+    let height = 0;
+    try {
+      const doc = win.document;
+      width = doc.body.scrollWidth;
+      height = noDocumentOffsetHeight ? 0 : doc.documentElement.offsetHeight;
+      const scanHeight = (elm, level = 0) => {
+        for (let i = 0; i < elm.children.length; i++) {
+          const child = elm.children[i];
+          const newHeight = child.scrollTop + child.offsetHeight;
+          if (newHeight > height && !isFiller(child)) {
+            height = newHeight;
+          }
+          if (level < MAX_SCAN_LEVEL) {
+            scanHeight(child, level + 1);
+          }
         }
       }
-    }
-    if(!height && doc.body) {
-      scanHeight(doc.body)
-    }
+      if (!height && doc.body) {
+        scanHeight(doc.body)
+      }
+    } catch (e) { /** Unfriendly iframe */}
     if (height <= 1 && win.parent !== top) {
       return this.getDimensions(win.parent, true);
     }
-    return { width, height };
+    return { width, height, ifr: win.frameElement };
   }
 
   check() {
     if (this.stopped) {
       return;
     }
-    const { width, height } = this.getDimensions();
+    const { width, height, ifr } = this.getDimensions();
     if (isNaN(width) || isNaN(height)) {
       utils.logWarn(`Failed getting dimensions width(${width}) height(${height})`);
     } else {
-      if(width !== this.lastWidth || height !== this.lastHeight) {
-        this.onDimensions(width, height);
+      if(width !== this.lastWidth || height !== this.lastHeight || ifr !== this.lastIfr) {
+        this.onDimensions(width, height, ifr);
       }
       this.lastWidth = width;
       this.lastHeight = height;
+      this.lastIfr = ifr;
     }
     if (--this.checksLeft > 0) {
       setTimeout(this.reCheckFn, this.checkIvl);

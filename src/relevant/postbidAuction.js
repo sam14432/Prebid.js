@@ -102,7 +102,7 @@ class PostbidAuction
       (this.containers || []).forEach(c => setSize(c, 'auto', 'auto'));
       this.hasResized = true;
     }
-    setSize(this.iframe, width, height)
+    setSize(this.iframe, width, height);
     try { /** Check if there is a parent-iframe we should try to resize */
       const { frameElement } = this.location.win;
       if (frameElement) {
@@ -263,9 +263,9 @@ class PostbidAuction
   startResizer(childIframe) {
     const szCalc = new WinSizeCalculator({
       win: (childIframe || this.iframe).contentWindow,
-      onDimensions: (width, height) => {
+      onDimensions: (width, height, ifr) => {
         this.resize(width, height);
-        if(childIframe) {
+        if(childIframe && ifr === childIframe) {
           setSize(childIframe, width, height);
         }
       },
