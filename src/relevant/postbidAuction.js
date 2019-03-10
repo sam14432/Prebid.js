@@ -2,13 +2,20 @@
 import * as utils from '../utils';
 import WinSizeCalculator from './winSizeCalculator';
 
-const setSize = (elm, width, height) => {
+const setSize = (elm, width, height, useDisplayNone) => {
   const toDim = v => isNaN(v) ? v : v + "px";
   if (width != null) {
     elm.style.width = toDim(width);
   }
   if (height != null) {
     elm.style.height = toDim(height);
+  }
+  if (useDisplayNone && width != null && height != null) {
+    if(!width || !height) {
+      elm.style.display = 'none';
+    } else if(elm.style.display === 'none') {
+      elm.style.display = null;
+    }
   }
 };
 
@@ -24,20 +31,6 @@ const asElm = (win, elm) => {
     return res;
   }
   return elm;
-};
-
-const getAdContainer = (elm) => {
-  if(elm.parentNode) {
-    const grandParent = elm.parentNode.parentNode;
-    if(grandParent && ~(elm.parentNode.getAttribute('id') || '').indexOf('google_ads_iframe_')) {
-      if(grandParent.getAttribute('data-google-query-id')) {
-        return grandParent;
-      } else {
-        return null;
-      }
-    }
-  }
-  return elm.parentNode || elm;
 };
 
 const PASSBACK_HTML = `
@@ -102,11 +95,11 @@ class PostbidAuction
       (this.containers || []).forEach(c => setSize(c, 'auto', 'auto'));
       this.hasResized = true;
     }
-    setSize(this.iframe, width, height);
+    setSize(this.iframe, width, height, true);
     try { /** Check if there is a parent-iframe we should try to resize */
       const { frameElement } = this.location.win;
       if (frameElement) {
-        setSize(frameElement, width, height)
+        setSize(frameElement, width, height, true)
       }
     } catch(e) { /** In un-friendly iframe */ }
   }
@@ -139,6 +132,8 @@ class PostbidAuction
       TOPMARGIN: 0,
       LEFTMARGIN: 0,
       ALLOWTRANSPARENCY: 'true',
+      ALLOWFULLSCREEN: 'true',
+      ALLOW: 'autoplay',
       width: this.initWidth,
       height: this.initHeight,
     };
@@ -156,6 +151,7 @@ class PostbidAuction
   }
 
   run() {
+    this.log('Starting postbid');
     this.initIframe();
     this.pbjs.que.push(() => this.requestBids());
   }
@@ -194,10 +190,15 @@ class PostbidAuction
     if(this.passbackRunInTop) {
       this.iframe = ifr;
       this.location = { win: top };
+      let node = ifr;
+      do {
+        node = node.parentNode;
+        node.style.setProperty('margin', '0px', 'important');
+      } while (node !== this.gptDiv);
     } else {
       childIframe = ifr;
+      this.startResizer(childIframe);
     }
-    this.startResizer(childIframe);
   }
 
   createGptDiv(doc, withContainer) {
@@ -214,30 +215,29 @@ class PostbidAuction
 
 
   initGooglePassbackUnit() {
-    const { googlePassbackUnit, initWidth, initHeight, sizes } = this;
+    const { googlePassbackUnit, initWidth, initHeight, sizes, adserver } = this;
     this.gptDivId = `div-gpt-id-${Math.random().toString().substring(2)}-0`;
-    let adjElm, googletag;
+    let adContainer, googletag;
     try {
       if(top.checkingCrossDomain) {
         console.info();
       }
       if(this.location.win === top) {
-        adjElm = getAdContainer(this.iframe);
+        adContainer = adserver.getAdContainer(this.iframe);
       } else {
         const { frameElement } = this.location.win
         const ownerDoc = (frameElement || {}).ownerDocument || {};
         if((ownerDoc.defaultView || ownerDoc.parentWindow) === top) {
-          adjElm = getAdContainer(frameElement);
+          adContainer = adserver.getAdContainer(frameElement);
         }
       }
-      if(adjElm && top.googletag && top.googletag.pubads()) {
+      if(adContainer && top.googletag) {
         googletag = top.googletag;
       }
     } catch(e) {}
-    this.passbackRunInTop = !!(!this.forcePassbackInIframe && adjElm && googletag && this.location.win !== top);
+    this.passbackRunInTop = !!(!this.forcePassbackInIframe && adContainer && googletag/* && this.location.win !== top*/);
     if(this.passbackRunInTop) { // re-use
-      this.gptDiv = this.createGptDiv(top.document, true);
-      adjElm.parentNode.insertBefore(this.gptDiv, adjElm);
+      this.gptDiv = adserver.createGptPassbackDiv(this, adContainer);
       this.resize(0, 0, true);
     } else {
       const win = this.iframe.contentWindow;
@@ -251,9 +251,9 @@ class PostbidAuction
     }
     googletag.cmd.push(() => {
       googletag.pubads().addEventListener('slotRenderEnded', ev => this.onGooglePassbackRendered(ev));
-      //googletag.pubads().collapseEmptyDivs();
+      googletag.pubads().collapseEmptyDivs();
       googletag.defineSlot(googlePassbackUnit, sizes, this.gptDivId).addService(googletag.pubads());
-      if (!this.passbackRunInTop) {
+      if (!googletag.pubadsReady) {
         googletag.enableServices();
       }
       googletag.display(this.gptDivId);
@@ -287,7 +287,7 @@ class PostbidAuction
       this.pbjs.renderAd(ifrDoc, params.hb_adid);
     } else {
       this.log('Calling passback');
-      ifrDoc.open();
+      ifrDoc.open('text/html', 'replace');
       this.iframe.contentWindow.passback = () => {
         if(this.googlePassbackUnit) {
           this.initGooglePassbackUnit();
