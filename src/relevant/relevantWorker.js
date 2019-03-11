@@ -11,14 +11,19 @@ class RelevantWorker
     this.queue = preQueue || [];
     this.pbjs = pbjs;
     this.adservers = [];
+    this.pendingAuctions = [];
   }
 
   init() {
     this.pbjs.setConfig({
       consentManagement: {},
       debug: ~location.toString().indexOf('relevant-debug'),
+      rubicon: {
+        singleRequest: true,
+      }
     });
     this.queue.forEach(param => this.runCmd(param));
+    this.runPendingAuctions();
   }
 
   runCmd(param) {
@@ -44,7 +49,14 @@ class RelevantWorker
 
   doPostbid(param) {
     const postbid = new PostbidAuction(this, param);
-    postbid.run();
+    postbid.init();
+    this.pendingAuctions.push(postbid);
+  }
+
+  runPendingAuctions() {
+    const auctions = this.pendingAuctions;
+    this.pendingAuctions = [];
+    PostbidAuction.requestMultipleBids(auctions);
   }
 
   getAdserver(type) {
@@ -67,6 +79,7 @@ class RelevantWorker
 
   push(param) {
     this.runCmd(param);
+    this.runPendingAuctions();
   }
 
   static staticInit() {

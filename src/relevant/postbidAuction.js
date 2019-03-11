@@ -150,10 +150,17 @@ class PostbidAuction
     this.iframe = iframe;
   }
 
-  run() {
-    this.log('Starting postbid');
+  init() {
+    this.log('Init postbid');
     this.initIframe();
-    this.pbjs.que.push(() => this.requestBids());
+  }
+
+  getPrebidElement() {
+    return {
+      code: this.unitId,
+      sizes: this.sizes,
+      bids: this.bids,
+    };
   }
 
   requestBids() {
@@ -167,6 +174,36 @@ class PostbidAuction
       timeout: this.bidTimeOut,
       bidsBackHandler: () => this.onBidsBack(),
     });
+  }
+
+  static requestMultipleBids(auctions) {
+    const byTimeout = {};
+    auctions.forEach((auction) => {
+      (byTimeout[auction.bidTimeOut] = byTimeout[auction.bidTimeOut] || []).push(auction);
+    });
+    for(const key in byTimeout) {
+      const arr = byTimeout[key];
+      const results = [];
+      const adUnits = arr.map(auction => auction.getPrebidElement());
+      const pbjs = arr[0].pbjs;
+      let completed = 0;
+      pbjs.que.push(() => {
+        pbjs.addAdUnits(adUnits);
+        pbjs.requestBids({
+          adUnitCodes: adUnits.map(unit => unit.code),
+          timeout: arr[0].bidTimeOut,
+          bidsBackHandler: () => arr.forEach(auction => auction.onBidsBack((result) => {
+            result.push({ result);
+            if(++completed === arr.length) {
+              if (!googletag.pubadsReady) {
+                googletag.pubads().collapseEmptyDivs();
+                googletag.enableServices();
+              }
+            }
+          })),
+        });
+      });
+    }
   }
 
   onGooglePassbackRendered(ev) {
@@ -214,7 +251,7 @@ class PostbidAuction
   };
 
 
-  initGooglePassbackUnit() {
+  initGooglePassbackUnit(onRenderTriggered) {
     const { googlePassbackUnit, initWidth, initHeight, sizes, adserver } = this;
     this.gptDivId = `div-gpt-id-${Math.random().toString().substring(2)}-0`;
     let adContainer, googletag;
@@ -251,12 +288,9 @@ class PostbidAuction
     }
     googletag.cmd.push(() => {
       googletag.pubads().addEventListener('slotRenderEnded', ev => this.onGooglePassbackRendered(ev));
-      googletag.pubads().collapseEmptyDivs();
       googletag.defineSlot(googlePassbackUnit, sizes, this.gptDivId).addService(googletag.pubads());
-      if (!googletag.pubadsReady) {
-        googletag.enableServices();
-      }
       googletag.display(this.gptDivId);
+      onRenderTriggered({ type: 'google', googletag });
     });
   }
 
@@ -275,7 +309,7 @@ class PostbidAuction
     szCalc.start();
   }
 
-  onBidsBack() {
+  onBidsBack(onRenderTriggered) {
     const ifrDoc = this.iframe.contentWindow.document;
     var params = this.pbjs.getAdserverTargetingForAdUnitCode(this.unitId);
     if (params && params.hb_adid) {
@@ -285,14 +319,16 @@ class PostbidAuction
         this.resize(dimensions[0], dimensions[1]);
       }
       this.pbjs.renderAd(ifrDoc, params.hb_adid);
+      onRenderTriggered({ type: 'prebid' });
     } else {
       this.log('Calling passback');
       ifrDoc.open('text/html', 'replace');
       this.iframe.contentWindow.passback = () => {
         if(this.googlePassbackUnit) {
-          this.initGooglePassbackUnit();
+          this.initGooglePassbackUnit(onRenderTriggered);
         } else {
           ifrDoc.write(eval("'" + (this.legacyPassbackHtml || '') + "'"));
+          onRenderTriggered({ type: 'legacy' });
           this.startResizer();
         }
       };
