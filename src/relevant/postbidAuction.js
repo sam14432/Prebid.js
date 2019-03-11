@@ -1,6 +1,7 @@
 /* eslint-disable */
 import * as utils from '../utils';
 import WinSizeCalculator from './winSizeCalculator';
+import DfpAdserver from './dfpAdserver';
 
 const setSize = (elm, width, height, useDisplayNone) => {
   const toDim = v => isNaN(v) ? v : v + "px";
@@ -82,7 +83,7 @@ class PostbidAuction
   }
 
   log(str) {
-    utils.logInfo(`Postbid: ${this.logIdentifier} - ${str}`);
+    utils.logInfo(`[${new Date().getTime() / 1000}]Postbid: ${this.logIdentifier} - ${str}`);
   }
 
   resize(width, height, ignoreMinDims) {
@@ -116,7 +117,7 @@ class PostbidAuction
         throw Error('Need to specify where to insert iframe if in top window');
       }
     }
-    if(noSpec) {
+    if (noSpec) {
       if (!doc.body) {
         throw Error(`document.body missing`);
       }
@@ -176,29 +177,40 @@ class PostbidAuction
     });
   }
 
+  static onRenderCallsDone(results) {
+    const withGptPassback = results.filter(r => r.result.type === 'google') || {};
+    if(withGptPassback.length) {
+      const { auction, result } = withGptPassback[0];
+      const { googletag } = result;
+      if (!(auction.adserver instanceof DfpAdserver) && !googletag.pubadsReady) {
+        googletag.pubads().collapseEmptyDivs();
+        googletag.pubads().enableSingleRequest();
+        googletag.enableServices();
+      }
+      withGptPassback.forEach(({ auction }) => googletag.display(auction.gptDivId));
+    }
+  }
+
   static requestMultipleBids(auctions) {
     const byTimeout = {};
     auctions.forEach((auction) => {
-      (byTimeout[auction.bidTimeOut] = byTimeout[auction.bidTimeOut] || []).push(auction);
+      const key = `${auction.bidTimeOut}_${auction.adserverType}`;
+      (byTimeout[key] = byTimeout[key] || []).push(auction);
     });
-    for(const key in byTimeout) {
+    for (const key in byTimeout) {
       const arr = byTimeout[key];
       const results = [];
       const adUnits = arr.map(auction => auction.getPrebidElement());
       const pbjs = arr[0].pbjs;
-      let completed = 0;
       pbjs.que.push(() => {
         pbjs.addAdUnits(adUnits);
         pbjs.requestBids({
           adUnitCodes: adUnits.map(unit => unit.code),
           timeout: arr[0].bidTimeOut,
           bidsBackHandler: () => arr.forEach(auction => auction.onBidsBack((result) => {
-            result.push({ result);
-            if(++completed === arr.length) {
-              if (!googletag.pubadsReady) {
-                googletag.pubads().collapseEmptyDivs();
-                googletag.enableServices();
-              }
+            results.push({ result, auction });
+            if (results.length === arr.length) {
+              PostbidAuction.onRenderCallsDone(results);
             }
           })),
         });
@@ -289,7 +301,6 @@ class PostbidAuction
     googletag.cmd.push(() => {
       googletag.pubads().addEventListener('slotRenderEnded', ev => this.onGooglePassbackRendered(ev));
       googletag.defineSlot(googlePassbackUnit, sizes, this.gptDivId).addService(googletag.pubads());
-      googletag.display(this.gptDivId);
       onRenderTriggered({ type: 'google', googletag });
     });
   }
