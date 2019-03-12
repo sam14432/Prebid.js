@@ -184,7 +184,7 @@ class PostbidAuction
       const { auction, result } = withGptPassback[0];
       const { googletag } = result;
       if (!(auction.adserver instanceof DfpAdserver) && !googletag.pubadsReady) {
-        googletag.pubads().collapseEmptyDivs();
+        googletag.pubads().collapseEmptyDivs(true);
         googletag.pubads().enableSingleRequest();
         googletag.enableServices();
       }
@@ -251,7 +251,7 @@ class PostbidAuction
     }
   }
 
-  createGptDiv(doc, withContainer) {
+  createGptDiv(doc, withContainer, setSize) {
     const elm = doc.createElement('div');
     let gptTarget = elm;
     if(withContainer) {
@@ -259,7 +259,9 @@ class PostbidAuction
       elm.appendChild(gptTarget);
     }
     gptTarget.setAttribute('id', this.gptDivId);
-    //setSize(elm, this.initWidth, this.initHeight);
+    if(setSize) {
+      setSize(elm, this.initWidth, this.initHeight);
+    }
     return elm;
   };
 

@@ -2,7 +2,7 @@ import AdserverBase from './adserverBase';
 
 class DfpAdserver extends AdserverBase {
   createGptPassbackDiv(auction, adContainer) {
-    const gptDiv = auction.createGptDiv(top.document, true);
+    const gptDiv = auction.createGptDiv(top.document, true, true);
     adContainer.parentNode.insertBefore(gptDiv, adContainer);
     return gptDiv;
   }
