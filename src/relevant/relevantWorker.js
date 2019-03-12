@@ -1,6 +1,7 @@
 /* eslint-disable */
 require('../prebid');
 import * as utils from '../utils';
+import find from 'core-js/library/fn/array/find';
 import PostbidAuction from './postbidAuction';
 import SmartAdserver from './smartAdserver';
 import DfpAdserver from './dfpAdserver';
@@ -69,7 +70,7 @@ class RelevantWorker
     if(!Type) {
       throw Error(`No adserver type '${type}'`);
     }
-    let adserver = this.adservers.find(ads => ads instanceof Type);
+    let adserver = find(this.adservers, ads => ads instanceof Type);
     if (!adserver) {
       adserver = new Type();
       this.adservers.push(adserver);
