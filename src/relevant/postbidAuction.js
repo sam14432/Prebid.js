@@ -79,7 +79,6 @@ class PostbidAuction
       throw Error('sizes invalid');
     }
     this.adserver = worker.getAdserver(this.adserverType);
-    this.adserver.initPostbidAuction(this);
   }
 
   log(str) {
@@ -141,6 +140,7 @@ class PostbidAuction
     for (const [key, value] of Object.entries(attribs)) {
       iframe.setAttribute(key, value);
     }
+    iframe.style.display = 'none';
     insertAfter = asElm(win, insertAfter);
     appendTo = asElm(win, appendTo);
     if (insertAfter) {
@@ -153,6 +153,7 @@ class PostbidAuction
 
   init() {
     this.log('Init postbid');
+    this.adserver.initPostbidAuction(this);
     this.initIframe();
   }
 
@@ -258,10 +259,13 @@ class PostbidAuction
       elm.appendChild(gptTarget);
     }
     gptTarget.setAttribute('id', this.gptDivId);
-    setSize(elm, this.initWidth, this.initHeight);
+    //setSize(elm, this.initWidth, this.initHeight);
     return elm;
   };
 
+  showIframe() {
+    this.iframe.style.display = null;
+  }
 
   initGooglePassbackUnit(onRenderTriggered) {
     const { googlePassbackUnit, initWidth, initHeight, sizes, adserver } = this;
@@ -297,6 +301,7 @@ class PostbidAuction
       doc.body.appendChild(this.gptDiv);
       script.src = 'https://www.googletagservices.com/tag/js/gpt.js';
       doc.head.appendChild(script);
+      this.showIframe();
     }
     googletag.cmd.push(() => {
       googletag.pubads().addEventListener('slotRenderEnded', ev => this.onGooglePassbackRendered(ev));
@@ -329,6 +334,7 @@ class PostbidAuction
       if(dimensions.length === 2) {
         this.resize(dimensions[0], dimensions[1]);
       }
+      this.showIframe();
       this.pbjs.renderAd(ifrDoc, params.hb_adid);
       onRenderTriggered({ type: 'prebid' });
     } else {
@@ -338,6 +344,7 @@ class PostbidAuction
         if(this.googlePassbackUnit) {
           this.initGooglePassbackUnit(onRenderTriggered);
         } else {
+          this.showIframe();
           ifrDoc.write(eval("'" + (this.legacyPassbackHtml || '') + "'"));
           onRenderTriggered({ type: 'legacy' });
           this.startResizer();
