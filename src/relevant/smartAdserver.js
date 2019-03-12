@@ -33,6 +33,7 @@ class SmartAdserver extends AdserverBase {
         auction.legacyPassbackHtml = null;
       }
     }
+    super.initPostbidAuction(auction);
   }
 }
 

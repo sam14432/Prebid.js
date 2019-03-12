@@ -1,5 +1,14 @@
 class AdserverBase {
-  initPostbidAuction(auction) {}
+  initPostbidAuction(auction) {
+    (auction.containers || []).forEach((elm) => {
+      if (auction.minWidth) {
+        elm.style.minWidth = `${auction.minWidth}px`;
+      }
+      if (auction.minHeight) {
+        elm.style.minHeight = `${auction.minHeight}px`;
+      }
+    });
+  }
 
   createGptPassbackDiv(auction, adContainer) {
     const gptDiv = auction.createGptDiv(top.document, false);
