@@ -10,11 +10,8 @@ class AdserverBase {
     });
   }
 
-  createGptPassbackDiv(auction, adContainer) {
-    const gptDiv = auction.createGptDiv(top.document, false, false, {
-      width: adContainer.clientWidth,
-      height: adContainer.clientHeight,
-    });
+  createGptPassbackDiv(auction, adContainer, dimensions) {
+    const gptDiv = auction.createGptDiv(top.document, dimensions);
     adContainer.appendChild(gptDiv);
     return gptDiv;
   }

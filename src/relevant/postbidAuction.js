@@ -12,7 +12,7 @@ const setSize = (elm, width, height, useDisplayNone) => {
     elm.style.height = toDim(height);
   }
   if (useDisplayNone && width != null && height != null) {
-    if(!width || !height) {
+    if(!width && !height) {
       elm.style.display = 'none';
     } else if(elm.style.display === 'none') {
       elm.style.display = null;
@@ -79,24 +79,7 @@ class PostbidAuction
   }
 
   log(str) {
-    const { prebidDebug, logToConsole } = this.worker;
-    if (!prebidDebug && !logToConsole) {
-      return;
-    }
-    const fmt = (num, n) => {
-      let res = num.toString();
-      for(let i = n - res.length; i > 0; --i) {
-        res = '0' + res;
-      }
-      return res;
-    };
-    const now = new Date();
-    const dateStr = `${fmt(now.getHours(), 2)}:${fmt(now.getMinutes(), 2)}:${fmt(now.getSeconds(), 2)}.${fmt(now.getMilliseconds(), 3)}`;
-    const msg = `[${dateStr}]Postbid: ${this.logIdentifier} - ${str}`;
-    utils.logInfo(msg);
-    if(this.worker.logToConsole) {
-      console.info(msg);
-    }
+    this.worker.constructor.log(`Postbid: ${this.logIdentifier} - ${str}`);
   }
 
   resize(width, height, ignoreMinDims) {
@@ -263,6 +246,7 @@ class PostbidAuction
       setSize(this.gptDiv, Math.max(0, this.minWidth), Math.max(0, this.minHeight));
       if(!this.passbackRunInTop) {
         this.resize(0, 0);
+        setSize(this.gptDiv, 0, 0);
       }
       this.event('onAdResponse', { type: 'google', googleParams: ev, noAd: true, width: 0, height: 0 });
       return;
@@ -288,20 +272,12 @@ class PostbidAuction
     }
   }
 
-  createGptDiv(doc, withContainer, setFromInitSize, specificSize) {
+  createGptDiv(doc, dimensions) {
     const elm = doc.createElement('div');
-    let gptTarget = elm;
-    if(withContainer) {
-      gptTarget = doc.createElement('div');
-      elm.appendChild(gptTarget);
-    }
+    const gptTarget = doc.createElement('div');
+    elm.appendChild(gptTarget);
     gptTarget.setAttribute('id', this.gptDivId);
-    if(specificSize) {
-      setSize(elm, specificSize.width, specificSize.height);
-    }
-    else if(setFromInitSize) {
-      setSize(elm, this.initWidth, this.initHeight);
-    }
+    setSize(elm, dimensions.width, dimensions.height);
     return elm;
   };
 
@@ -332,13 +308,16 @@ class PostbidAuction
     } catch(e) {}
     this.passbackRunInTop = !!(!this.forcePassbackInIframe && adContainer && googletag/* && this.location.win !== top*/);
     if(this.passbackRunInTop) { // re-use
-      this.gptDiv = adserver.createGptPassbackDiv(this, adContainer);
+      this.gptDiv = adserver.createGptPassbackDiv(this, adContainer, {
+        width: adContainer.clientWidth,
+        height: adContainer.clientHeight,
+      });
       this.resize(0, 0, true);
     } else {
       const win = this.iframe.contentWindow;
       const doc = win.document;
       const script = doc.createElement('script');
-      this.gptDiv = this.createGptDiv(top.document, false);
+      this.gptDiv = this.createGptDiv(top.document, null);
       googletag = win.googletag = { cmd: [] };
       doc.body.appendChild(this.gptDiv);
       script.src = 'https://www.googletagservices.com/tag/js/gpt.js';

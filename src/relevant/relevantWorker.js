@@ -6,6 +6,9 @@ import PostbidAuction from './postbidAuction';
 import SmartAdserver from './smartAdserver';
 import DfpAdserver from './dfpAdserver';
 
+const logToConsole = ~location.toString().indexOf('relevant-console');
+const prebidDebug = ~location.toString().indexOf('relevant-debug');
+
 class RelevantWorker
 {
   constructor(preQueue, pbjs) {
@@ -18,8 +21,6 @@ class RelevantWorker
     } catch(e) {
       this.pageConfig = {};
     }
-    this.logToConsole = ~location.toString().indexOf('relevant-console');
-    this.prebidDebug = ~location.toString().indexOf('relevant-debug');
   }
 
   init() {
@@ -59,6 +60,26 @@ class RelevantWorker
           utils.logError(`Error in error handler: ${e.message}`);
         }
       }
+    }
+  }
+
+  static log(str) {
+    if (!prebidDebug && !logToConsole) {
+      return;
+    }
+    const fmt = (num, n) => {
+      let res = num.toString();
+      for (let i = n - res.length; i > 0; --i) {
+        res = '0' + res;
+      }
+      return res;
+    };
+    const now = new Date();
+    const dateStr = `${fmt(now.getHours(), 2)}:${fmt(now.getMinutes(), 2)}:${fmt(now.getSeconds(), 2)}.${fmt(now.getMilliseconds(), 3)}`;
+    const msg = `[${dateStr}] ${str}`;
+    utils.logInfo(msg);
+    if (logToConsole) {
+      console.info(msg);
     }
   }
 
@@ -116,4 +137,5 @@ class RelevantWorker
   }
 }
 
+RelevantWorker.log('Initializing..');
 RelevantWorker.staticInit();
