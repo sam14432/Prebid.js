@@ -62,10 +62,7 @@ class PostbidAuction
       forcePassbackInIframe: false,
       adserver: 'dfp',
     };
-    let pageConfig;
-    try {
-      pageConfig = top.RELEVANT_POSTBID_CONFIG;
-    } catch(e) {}
+    let pageConfig = { worker };
     Object.assign(this, DEFAULT, pageConfig || {}, params, {
       worker,
       pbjs: worker.pbjs,
@@ -82,7 +79,24 @@ class PostbidAuction
   }
 
   log(str) {
-    utils.logInfo(`[${new Date().getTime() / 1000}]Postbid: ${this.logIdentifier} - ${str}`);
+    const { prebidDebug, logToConsole } = this.worker;
+    if (!prebidDebug && !logToConsole) {
+      return;
+    }
+    const fmt = (num, n) => {
+      let res = num.toString();
+      for(let i = n - res.length; i > 0; --i) {
+        res = '0' + res;
+      }
+      return res;
+    };
+    const now = new Date();
+    const dateStr = `${fmt(now.getHours(), 2)}:${fmt(now.getMinutes(), 2)}:${fmt(now.getSeconds(), 2)}.${fmt(now.getMilliseconds(), 3)}`;
+    const msg = `[${dateStr}]Postbid: ${this.logIdentifier} - ${str}`;
+    utils.logInfo(msg);
+    if(this.worker.logToConsole) {
+      console.info(msg);
+    }
   }
 
   resize(width, height, ignoreMinDims) {
@@ -90,7 +104,7 @@ class PostbidAuction
       width = Math.max(width, this.minWidth);
       height = Math.max(height, this.minHeight);
     }
-    this.log(`Setting width(${width}) height(${height})`);
+    //this.log(`Setting width(${width}) height(${height})`);
     if (!this.hasResized) {
       (this.containers || []).forEach(c => setSize(c, 'auto', 'auto'));
       this.hasResized = true;
@@ -188,7 +202,10 @@ class PostbidAuction
         googletag.pubads().enableSingleRequest();
         googletag.enableServices();
       }
-      withGptPassback.forEach(({ auction }) => googletag.display(auction.gptDivId));
+      withGptPassback.forEach(({ auction }) => {
+        auction.log('calling googletag.display()');
+        googletag.display(auction.gptDivId);
+      });
     }
   }
 
@@ -219,6 +236,25 @@ class PostbidAuction
     }
   }
 
+  onAdResponse(params) {
+    this.currentAd = params;
+    const { width, height, type, noAd } = params;
+    this.log(`Ad response: ${noAd ? 'EMPTY' : `${width}x${height} (${type === 'prebid' ? params.prebidParams.hb_bidder || 'prebid' : type})`}`);
+    this.event('onAdDimensions', { width, height, isOnAdResponse: true });
+  }
+
+  onAdDimensionsChanged(params) {
+    this.event('onAdDimensions', params);
+  }
+
+  event(type, params) {
+    params.auction = this;
+    this.worker.event(type, params);
+    if(this[type]) {
+      this[type](params);
+    }
+  }
+
   onGooglePassbackRendered(ev) {
     if(ev.slot.getSlotElementId() !== this.gptDivId) {
       return;
@@ -228,15 +264,17 @@ class PostbidAuction
       if(!this.passbackRunInTop) {
         this.resize(0, 0);
       }
+      this.event('onAdResponse', { type: 'google', googleParams: ev, noAd: true, width: 0, height: 0 });
       return;
     }
+    const [width, height] = ev.size;
+    this.event('onAdResponse', { type: 'google', googleParams: ev, width, height });
     const ifr = this.gptDiv.getElementsByTagName("iframe")[0];
     if(!ifr) {
       this.log("Failed to find passback iframe");
       return;
     }
     setSize(this.gptDiv, 'auto', 'auto');
-    let childIframe;
     if(this.passbackRunInTop) {
       this.iframe = ifr;
       this.location = { win: top };
@@ -246,12 +284,11 @@ class PostbidAuction
         node.style.setProperty('margin', '0px', 'important');
       } while (node !== this.gptDiv);
     } else {
-      childIframe = ifr;
-      this.startResizer(childIframe);
+      this.startResizer(ifr);
     }
   }
 
-  createGptDiv(doc, withContainer, setSize) {
+  createGptDiv(doc, withContainer, setFromInitSize, specificSize) {
     const elm = doc.createElement('div');
     let gptTarget = elm;
     if(withContainer) {
@@ -259,7 +296,10 @@ class PostbidAuction
       elm.appendChild(gptTarget);
     }
     gptTarget.setAttribute('id', this.gptDivId);
-    if(setSize) {
+    if(specificSize) {
+      setSize(elm, specificSize.width, specificSize.height);
+    }
+    else if(setFromInitSize) {
       setSize(elm, this.initWidth, this.initHeight);
     }
     return elm;
@@ -317,12 +357,15 @@ class PostbidAuction
       win: (childIframe || this.iframe).contentWindow,
       onDimensions: (width, height, ifr) => {
         this.resize(width, height);
+        this.event('onAdDimensionsChanged', { width, height });
         if(childIframe && ifr === childIframe) {
           setSize(childIframe, width, height);
         }
       },
       checkIvl: this.sizeCheckIvl || 500,
       duration: this.sizeCheckDuration || 5000,
+      lastWidth: this.currentAd.width,
+      lastHeight: this.currentAd.height,
     });
     szCalc.start();
   }
@@ -330,14 +373,18 @@ class PostbidAuction
   onBidsBack(onRenderTriggered) {
     const ifrDoc = this.iframe.contentWindow.document;
     var params = this.pbjs.getAdserverTargetingForAdUnitCode(this.unitId);
+    let width = this.initWidth;
+    let height = this.initHeight;
     if (params && params.hb_adid) {
-      this.log(`Bid won - rendering ad: ${params}`);
       const dimensions = (params.hb_size || '').split('x');
       if(dimensions.length === 2) {
-        this.resize(dimensions[0], dimensions[1]);
+        width = parseInt(dimensions[0]);
+        height = parseInt(dimensions[1]);
+        this.resize(width, height);
       }
       this.showIframe();
       this.pbjs.renderAd(ifrDoc, params.hb_adid);
+      this.event('onAdResponse', { type: 'prebid', prebidParams: params, width, height });
       onRenderTriggered({ type: 'prebid' });
     } else {
       this.log('Calling passback');
@@ -348,6 +395,7 @@ class PostbidAuction
         } else {
           this.showIframe();
           ifrDoc.write(eval("'" + (this.legacyPassbackHtml || '') + "'"));
+          this.event('onAdResponse', { type: 'legacy', width, height });
           onRenderTriggered({ type: 'legacy' });
           this.startResizer();
         }

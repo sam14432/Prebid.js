@@ -13,18 +13,32 @@ class RelevantWorker
     this.pbjs = pbjs;
     this.adservers = [];
     this.pendingAuctions = [];
+    try {
+      this.pageConfig = top.RELEVANT_POSTBID_CONFIG || {};
+    } catch(e) {
+      this.pageConfig = {};
+    }
+    this.logToConsole = ~location.toString().indexOf('relevant-console');
+    this.prebidDebug = ~location.toString().indexOf('relevant-debug');
   }
 
   init() {
     this.pbjs.setConfig({
       consentManagement: {},
-      debug: ~location.toString().indexOf('relevant-debug'),
+      debug: this.prebidDebug,
       rubicon: {
         singleRequest: true,
       }
     });
     this.queue.forEach(param => this.runCmd(param));
     this.runPendingAuctions();
+  }
+
+  event(type, params) {
+    const { pageConfig } = this;
+    if (pageConfig.type) {
+      pageConfig.type(params);
+    }
   }
 
   runCmd(param) {
