@@ -89,7 +89,7 @@ class PostbidAuction
     }
     //this.log(`Setting width(${width}) height(${height})`);
     if (!this.hasResized) {
-      (this.containers || []).forEach(c => setSize(c, 'auto', 'auto'));
+      //(this.containers || []).forEach(c => setSize(c, 'auto', 'auto')); Why did I have this..?
       this.hasResized = true;
     }
     setSize(this.iframe, width, height, true);
@@ -274,6 +274,7 @@ class PostbidAuction
 
   createGptDiv(doc, dimensions) {
     const elm = doc.createElement('div');
+    elm.style.display = 'inline-block'; // make div more "iframe-like", needed on newz.dk
     const gptTarget = doc.createElement('div');
     elm.appendChild(gptTarget);
     gptTarget.setAttribute('id', this.gptDivId);
