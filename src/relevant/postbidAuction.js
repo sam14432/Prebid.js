@@ -274,7 +274,7 @@ class PostbidAuction
 
   createGptDiv(doc, dimensions) {
     const elm = doc.createElement('div');
-    elm.style.display = 'inline-block'; // make div more "iframe-like", needed on newz.dk
+    //elm.style.display = 'inline-block'; // make div more "iframe-like", needed on newz.dk
     const gptTarget = doc.createElement('div');
     elm.appendChild(gptTarget);
     gptTarget.setAttribute('id', this.gptDivId);
