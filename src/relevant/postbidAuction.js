@@ -2,6 +2,7 @@
 import * as utils from '../utils';
 import WinSizeCalculator from './winSizeCalculator';
 import DfpAdserver from './dfpAdserver';
+import Hacks from './hacks';
 
 const setSize = (elm, width, height, useDisplayNone) => {
   const toDim = v => isNaN(v) ? v : v + "px";
@@ -89,7 +90,7 @@ class PostbidAuction
     }
     //this.log(`Setting width(${width}) height(${height})`);
     if (!this.hasResized) {
-      //(this.containers || []).forEach(c => setSize(c, 'auto', 'auto')); Why did I have this..?
+      //(this.containers || []).forEach(c => setSize(c, 'auto', 'auto')); //Why did I have this..?
       this.hasResized = true;
     }
     setSize(this.iframe, width, height, true);
@@ -150,6 +151,8 @@ class PostbidAuction
 
   init() {
     this.log('Init postbid');
+    this.hacks = Hacks.filter(hack => hack.matches(this));
+    this.event('onInit');
     this.adserver.initPostbidAuction(this);
     this.initIframe();
   }
@@ -230,8 +233,16 @@ class PostbidAuction
     this.event('onAdDimensions', params);
   }
 
-  event(type, params) {
+  event(type, params = {}) {
     params.auction = this;
+    if(this.events && this.events[type]) {
+      this.events[type](params);
+    }
+    this.hacks.forEach((hack) => {
+      if(hack[type]) {
+        hack[type](params);
+      }
+    });
     this.worker.event(type, params);
     if(this[type]) {
       this[type](params);

@@ -52,12 +52,12 @@ class RelevantWorker
       }
       CMDS[param.cmd](param.param);
     } catch(e) {
-      utils.logError(`Command error: ${e.message}`);
+      RelevantWorker.log(`Command error: ${e.message}`);
       if(param.onError) {
         try {
           param.onError(e);
         } catch(e) {
-          utils.logError(`Error in error handler: ${e.message}`);
+          RelevantWorker.log(`Error in error handler: ${e.message}`);
         }
       }
     }
@@ -133,7 +133,7 @@ class RelevantWorker
         }
         return res;
       };
-    })(window.pbjs, window.pbjs.processQueue);
+    })(window.$$PREBID_GLOBAL$$, window.$$PREBID_GLOBAL$$.processQueue);
   }
 }
 
