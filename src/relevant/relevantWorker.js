@@ -45,6 +45,7 @@ class RelevantWorker
   runCmd(param) {
     const CMDS = {
       postbid: param => this.doPostbid(param),
+      prebid: param => this.doPrebid(param),
     };
     try {
       if(!param || !CMDS[param.cmd]) {
@@ -87,6 +88,11 @@ class RelevantWorker
     const postbid = new PostbidAuction(this, param);
     postbid.init();
     this.pendingAuctions.push(postbid);
+  }
+
+  doPrebid(param) {
+    this.prebid = new PrebidAuction(this, param);
+    this.prebid.init();
   }
 
   runPendingAuctions() {
