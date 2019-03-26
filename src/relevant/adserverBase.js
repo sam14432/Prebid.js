@@ -10,6 +10,12 @@ class AdserverBase {
     });
   }
 
+  getPbjsConfig() { return null; }
+
+  initPrebidAuction() {
+    throw Error('Prebid not implemented for adserver');
+  }
+
   createGptPassbackDiv(auction, adContainer, dimensions) {
     const gptDiv = auction.createGptDiv(top.document, dimensions);
     adContainer.appendChild(gptDiv);

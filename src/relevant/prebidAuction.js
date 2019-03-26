@@ -1,13 +1,20 @@
 /* eslint-disable */
+import AuctionBase from './auctionBase';
 
-class PrebidAuction
+const DEFAULT = {
+  failsafeTimeout: 2000,
+};
+
+class PrebidAuction extends AuctionBase
 {
   constructor(worker, params) {
-    this.adserver = worker.getAdserver(this.adserverType);
+    super(worker, params, DEFAULT);
   }
 
-  log(str) {
-    this.worker.constructor.log(`Prebid: ${str}`);
+  init() {
+    super.init();
+    this.event('onInitPrebid');
+    this.adserver.initPrebidAuction(this);
   }
 
 }

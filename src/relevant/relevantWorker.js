@@ -12,6 +12,14 @@ const prebidDebug = ~location.toString().indexOf('relevant-debug');
 class RelevantWorker
 {
   constructor(preQueue, pbjs) {
+    Object.assign(this, {
+      queue: preQueue || [],
+      pbjs: pbjs,
+      adservers: [],
+      pendingAuctions: [],
+      logToConsole,
+      prebidDebug,
+    });
     this.queue = preQueue || [];
     this.pbjs = pbjs;
     this.adservers = [];
@@ -24,13 +32,6 @@ class RelevantWorker
   }
 
   init() {
-    this.pbjs.setConfig({
-      consentManagement: {},
-      debug: this.prebidDebug,
-      rubicon: {
-        singleRequest: true,
-      }
-    });
     this.queue.forEach(param => this.runCmd(param));
     this.runPendingAuctions();
   }

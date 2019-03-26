@@ -1,6 +1,6 @@
 import SmartAdserver from './smartAdserver';
 
-const sasDiv = auction => auction.adserver instanceof SmartAdserver && auction.containers[0];
+const sasDiv = auction => auction.adserver instanceof SmartAdserver && (auction.containers || [])[0];
 
 const Foreca = {
   matches: () => location.hostname.indexOf('foreca') >= 0,

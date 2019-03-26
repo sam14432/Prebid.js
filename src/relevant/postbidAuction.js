@@ -3,6 +3,7 @@ import * as utils from '../utils';
 import WinSizeCalculator from './winSizeCalculator';
 import DfpAdserver from './dfpAdserver';
 import Hacks from './hacks';
+import AuctionBase from './auctionBase';
 
 const setSize = (elm, width, height, useDisplayNone) => {
   const toDim = v => isNaN(v) ? v : v + "px";
@@ -49,26 +50,22 @@ const PASSBACK_HTML = `
   </html>      
 `;
 
-class PostbidAuction
+// other values: bids, sizes, legacyPassbackHtml,
+// location { win, insertAfter, insertIn }
+const DEFAULT = {
+  bidTimeOut: 1000,
+  logIdentifier: 'unknown',
+  containers: [],
+  minHeight: 0,
+  minWidth: 0,
+  forcePassbackInIframe: false,
+  adserverType: 'dfp',
+};
+
+class PostbidAuction extends AuctionBase
 {
   constructor(worker, params) {
-    // other values: bids, sizes, legacyPassbackHtml,
-    // location { win, insertAfter, insertIn }
-    const DEFAULT = {
-      bidTimeOut: 1000,
-      logIdentifier: 'unknown',
-      containers: [],
-      minHeight: 0,
-      minWidth: 0,
-      forcePassbackInIframe: false,
-      adserver: 'dfp',
-    };
-    let pageConfig = { worker };
-    Object.assign(this, DEFAULT, pageConfig || {}, params, {
-      worker,
-      pbjs: worker.pbjs,
-      unitId: `unit_${Math.random().toString().substring(2)}`,
-    });
+    super(worker, params, DEFAULT);
     if(Array.isArray(this.sizes) && Array.isArray(this.sizes[0])) {
       this.initWidth = this.sizes[0][0];
       this.initHeight = this.sizes[0][1];
@@ -76,8 +73,10 @@ class PostbidAuction
     if(!this.initWidth || !this.initHeight) {
       throw Error('sizes invalid');
     }
-    this.adserver = worker.getAdserver(this.adserverType);
+    this.unitId = `unit_${Math.random().toString().substring(2)}`;
   }
+
+  auctionType() { return 'postbid' }
 
   log(str) {
     this.worker.constructor.log(`Postbid: ${this.logIdentifier} - ${str}`);
@@ -150,9 +149,8 @@ class PostbidAuction
   }
 
   init() {
-    this.log('Init postbid');
-    this.hacks = Hacks.filter(hack => hack.matches(this));
-    this.event('onInit');
+    super.init();
+    this.event('onInitPostbid');
     this.adserver.initPostbidAuction(this);
     this.initIframe();
   }
@@ -231,22 +229,6 @@ class PostbidAuction
 
   onAdDimensionsChanged(params) {
     this.event('onAdDimensions', params);
-  }
-
-  event(type, params = {}) {
-    params.auction = this;
-    if(this.events && this.events[type]) {
-      this.events[type](params);
-    }
-    this.hacks.forEach((hack) => {
-      if(hack[type]) {
-        hack[type](params);
-      }
-    });
-    this.worker.event(type, params);
-    if(this[type]) {
-      this[type](params);
-    }
   }
 
   onGooglePassbackRendered(ev) {
