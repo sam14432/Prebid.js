@@ -10,14 +10,6 @@ const DEFAULT = {
   pbjsConfig: null,
 };
 
-const PREBID_DEFAULT_CONFIG = {
-  consentManagement: {},
-  debug: this.worker.prebidDebug,
-  rubicon: {
-    singleRequest: true,
-  }
-}
-
 class AuctionBase
 {
   constructor(worker, params, defaultValues) {
@@ -53,9 +45,18 @@ class AuctionBase
 
   init() {
     this.log('Init');
-    this.hacks = Hacks.filter(hack => hack.matches(this));
+    if(!this.hacks) { // might have been copied from prebid => postprebid
+      this.hacks = Hacks.filter(hack => hack.matches(this));
+    }
     if(!AuctionBase.pbjsConfigSet) {
       AuctionBase.pbjsConfigSet = true;
+      const PREBID_DEFAULT_CONFIG = {
+        consentManagement: {},
+        debug: this.worker.prebidDebug,
+        rubicon: {
+          singleRequest: true,
+        }
+      }
       const cfg = mergeNonExisting({}, this.pbjsConfig, adserver.getPbjsConfig(), PREBID_DEFAULT_CONFIG);
       this.pbjs.setConfig(cfg);
     }

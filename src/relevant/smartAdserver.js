@@ -19,7 +19,6 @@ const extractAdUnitCode = (str) => {
   return (match || [])[1];
 };
 
-
 class SmartAdserver extends AdserverBase {
   initPostbidAuction(auction) {
     const { legacyPassbackHtml, googlePassbackUnit } = auction;
@@ -46,8 +45,8 @@ class SmartAdserver extends AdserverBase {
     injectCall(sas, 'call', (sasCall, type, param, options, ...rest) => {
       let newParam = param;
       let newOptions = options;
-      if(type === 'onecall') {
-        if(!param.formats && param.formatId) {
+      if (type === 'onecall') {
+        if (!param.formats && param.formatId) {
           newParam = Object.assign({}, param, {
             formats: param.formatId.split(',').filter(s => s).map(s => parseInt(s.trim())),
           });
@@ -60,7 +59,7 @@ class SmartAdserver extends AdserverBase {
             tagId: param.tagId,
             events: {
               onAdResponse: ({ noAd }) => {
-                if(onNoad) {
+                if (onNoad) {
                   onNoad.call(options, ...rest2);
                 }
               },
@@ -84,36 +83,40 @@ class SmartAdserver extends AdserverBase {
   }
 
   getAdUnitCodeFromParams(auction, param) {
-    if(param.tagId) {
+    if (param.tagId) {
       return param.tagId;
     }
     const sasDiv = (param.containers || [])[0];
-    if(!sasDiv) {
+    if (!sasDiv) {
       return null;
     }
     return sasDiv.getAttribute('id');
   }
 
-  getPostPrebidParams(auction, adUnit) {
+  getPostPrebidParams(auction, adUnit, postbidParams, newParams) {
     const sasDiv = document.getElementById(adUnit.code);
     if (!sasDiv) {
       return null;
     }
-    return {
+    const res = {
       location: { win: window, appendTo: sasDiv},
       containers: [sasDiv],
     };
+    if (!('googlePassbackUnit' in adUnit) && postbidParams) { // copy passback
+      res.legacyPassbackHtml = postbidParams.legacyPassbackHtml;
+      res.googlePassbackUnit = postbidParams.googlePassbackUnit;
+    }
   }
 
   sendAdserverRequest(auction) {
-    if(this.adserverRequestTriggered) {
+    if (this.adserverRequestTriggered) {
       return;
     }
     this.adserverRequestTriggered = true;
     sas.cmd.push(() => {
       auction.adUnits.forEach((adUnit) => {
         const bid = auction.pbjs.getHighestCpmBids(adUnit.code)[0];
-        if(bid) {
+        if (bid) {
           sas.setHeaderBiddingWinner(adUnit.code, bid);
           auction.addWinningBid(adUnit.code, bid);
         }

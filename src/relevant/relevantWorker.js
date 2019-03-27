@@ -3,8 +3,10 @@ require('../prebid');
 import * as utils from '../utils';
 import find from 'core-js/library/fn/array/find';
 import PostbidAuction from './postbidAuction';
+import PrebidAuction from './prebidAuction';
 import SmartAdserver from './smartAdserver';
 import DfpAdserver from './dfpAdserver';
+import { isFunction } from './utils';
 
 const logToConsole = ~location.toString().indexOf('relevant-console');
 const prebidDebug = ~location.toString().indexOf('relevant-debug');
@@ -49,10 +51,14 @@ class RelevantWorker
       prebid: param => this.doPrebid(param),
     };
     try {
-      if(!param || !CMDS[param.cmd]) {
-        throw `Invalid parameter: ${(param || {}).cmd}`;
+      if(isFunction(param)) {
+        param();
+      } else {
+        if (!param || !CMDS[param.cmd]) {
+          throw `Invalid parameter: ${(param || {}).cmd}`;
+        }
+        CMDS[param.cmd](param.param);
       }
-      CMDS[param.cmd](param.param);
     } catch(e) {
       RelevantWorker.log(`Command error: ${e.message}`);
       if(param.onError) {
@@ -97,8 +103,12 @@ class RelevantWorker
   }
 
   doPrebid(param) {
-    this.prebid = new PrebidAuction(this, param);
-    this.prebid.init();
+    const prebid = new PrebidAuction(this, param);
+    if(prebid.prebidAborted) {
+      return; // page didn't want to wait for us
+    }
+    this.prebid = prebid;
+    prebid.init();
   }
 
   runPendingAuctions() {

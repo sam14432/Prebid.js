@@ -1,10 +1,10 @@
 const mergeNonExisting = (dst, ...sources) => {
   sources.forEach((src) => {
-    if(!dst || typeof dst !== 'object' || !src || typeof src !== 'object') {
+    if (!dst || typeof dst !== 'object' || !src || typeof src !== 'object') {
       return;
     }
-    for(var key in src || {}) {
-      if(key in dst) {
+    for (var key in src || {}) {
+      if (key in dst) {
         mergeNonExisting(dst[key], src[key]);
       } else {
         dst[key] = src[key]
@@ -17,7 +17,7 @@ const mergeNonExisting = (dst, ...sources) => {
 const injectCall = (obj, fnName, fn) => {
   let realCall = obj[fnName];
   const orgCaller = (...args) => {
-    if(!realCall) {
+    if (!realCall) {
       throw Error(`We haven't received orignal function '${fnName}' yet!`);
     }
     realCall.call(obj, ...args);
@@ -41,7 +41,7 @@ const asElm = (win, elm) => {
   }
   if (typeof elm === 'string' || elm instanceof String) {
     const res = win.document.querySelector(elm);
-    if(!res) {
+    if (!res) {
       throw Exception(`Failed to find element '${elm}'`);
     }
     return res;
@@ -50,7 +50,7 @@ const asElm = (win, elm) => {
 };
 
 const setSize = (elm, width, height, useDisplayNone) => {
-  const toDim = v => isNaN(v) ? v : v + "px";
+  const toDim = v => isNaN(v) ? v : v + 'px';
   if (width != null) {
     elm.style.width = toDim(width);
   }
@@ -58,9 +58,9 @@ const setSize = (elm, width, height, useDisplayNone) => {
     elm.style.height = toDim(height);
   }
   if (useDisplayNone && width != null && height != null) {
-    if(!width && !height) {
+    if (!width && !height) {
       elm.style.display = 'none';
-    } else if(elm.style.display === 'none') {
+    } else if (elm.style.display === 'none') {
       elm.style.display = null;
     }
   }
@@ -74,7 +74,7 @@ createIframe = (location, width, height, hidden) => {
   const noSpec = !insertAfter && !appendTo;
   const doc = win.document;
   if (win === top) {
-    if(noSpec) {
+    if (noSpec) {
       throw Error('Need to specify where to insert iframe if in top window');
     }
   }
@@ -102,7 +102,7 @@ createIframe = (location, width, height, hidden) => {
   for (const [key, value] of Object.entries(attribs)) {
     iframe.setAttribute(key, value);
   }
-  if(hidden) {
+  if (hidden) {
     iframe.style.display = 'none';
   }
   insertAfter = asElm(win, insertAfter);
@@ -114,6 +114,8 @@ createIframe = (location, width, height, hidden) => {
   }
   return iframe;
 };
+
+const isFunction = obj => ({}).toString.call(obj) === '[object Function]';
 
 module.exports = {
   mergeNonExisting,
