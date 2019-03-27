@@ -16,6 +16,18 @@ class AdserverBase {
     throw Error('Prebid not implemented for adserver');
   }
 
+  sendAdserverRequest() {
+    throw Error('Prebid not implemented for adserver');
+  }
+
+  getAdUnitCodeFromParams() {
+    throw Error('Prebid not implemented for adserver');
+  }
+
+  getPostPrebidParams() {
+    throw Error('Prebid not implemented for adserver');
+  }
+
   createGptPassbackDiv(auction, adContainer, dimensions) {
     const gptDiv = auction.createGptDiv(top.document, dimensions);
     adContainer.appendChild(gptDiv);

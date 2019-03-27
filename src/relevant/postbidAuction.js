@@ -4,37 +4,7 @@ import WinSizeCalculator from './winSizeCalculator';
 import DfpAdserver from './dfpAdserver';
 import Hacks from './hacks';
 import AuctionBase from './auctionBase';
-
-const setSize = (elm, width, height, useDisplayNone) => {
-  const toDim = v => isNaN(v) ? v : v + "px";
-  if (width != null) {
-    elm.style.width = toDim(width);
-  }
-  if (height != null) {
-    elm.style.height = toDim(height);
-  }
-  if (useDisplayNone && width != null && height != null) {
-    if(!width && !height) {
-      elm.style.display = 'none';
-    } else if(elm.style.display === 'none') {
-      elm.style.display = null;
-    }
-  }
-};
-
-const asElm = (win, elm) => {
-  if (!elm) {
-    return elm;
-  }
-  if (typeof elm === 'string' || elm instanceof String) {
-    const res = win.document.querySelector(elm);
-    if(!res) {
-      throw Exception(`Failed to find element '${elm}'`);
-    }
-    return res;
-  }
-  return elm;
-};
+import { setSize, createIframe } from './utils';
 
 const PASSBACK_HTML = `
   <!DOCTYPE html>
@@ -73,14 +43,12 @@ class PostbidAuction extends AuctionBase
     if(!this.initWidth || !this.initHeight) {
       throw Error('sizes invalid');
     }
-    this.unitId = `unit_${Math.random().toString().substring(2)}`;
+    if (!this.unitId) {
+      this.unitId = `unit_${Math.random().toString().substring(2)}`;
+    }
   }
 
-  auctionType() { return 'postbid' }
-
-  log(str) {
-    this.worker.constructor.log(`Postbid: ${this.logIdentifier} - ${str}`);
-  }
+  auctionType() { return this.isPostPrebid ? 'post_prebid' : 'postbid' }
 
   resize(width, height, ignoreMinDims) {
     if(!ignoreMinDims) {
@@ -101,58 +69,11 @@ class PostbidAuction extends AuctionBase
     } catch(e) { /** In un-friendly iframe */ }
   }
 
-  initIframe() {
-    let { win, insertAfter, appendTo } = this.location || {};
-    if (!win) {
-      throw Error('location.win not defined');
-    }
-    const noSpec = !insertAfter && !appendTo;
-    const doc = win.document;
-    if (win === top) {
-      if(noSpec) {
-        throw Error('Need to specify where to insert iframe if in top window');
-      }
-    }
-    if (noSpec) {
-      if (!doc.body) {
-        throw Error(`document.body missing`);
-      }
-      appendTo = doc.body;
-    }
-
-    var iframe = doc.createElement('iframe');
-    const attribs = {
-      FRAMEBORDER: 0,
-      SCROLLING: 'no',
-      MARGINHEIGHT: 0,
-      MARGINWIDTH: 0,
-      TOPMARGIN: 0,
-      LEFTMARGIN: 0,
-      ALLOWTRANSPARENCY: 'true',
-      ALLOWFULLSCREEN: 'true',
-      ALLOW: 'autoplay',
-      width: this.initWidth,
-      height: this.initHeight,
-    };
-    for (const [key, value] of Object.entries(attribs)) {
-      iframe.setAttribute(key, value);
-    }
-    iframe.style.display = 'none';
-    insertAfter = asElm(win, insertAfter);
-    appendTo = asElm(win, appendTo);
-    if (insertAfter) {
-      insertAfter.parentNode.insertBefore(iframe, insertAfter.nextSibling);
-    } else if (appendTo) {
-      appendTo.appendChild(iframe);
-    }
-    this.iframe = iframe;
-  }
-
   init() {
     super.init();
     this.event('onInitPostbid');
     this.adserver.initPostbidAuction(this);
-    this.initIframe();
+    this.iframe = createIframe(this.location, this.initWidth, this.initHeight, true);
   }
 
   getPrebidElement() {
@@ -196,7 +117,7 @@ class PostbidAuction extends AuctionBase
   static requestMultipleBids(auctions) {
     const byTimeout = {};
     auctions.forEach((auction) => {
-      const key = `${auction.bidTimeOut}_${auction.adserverType}`;
+      const key = `${auction.bidTimeOut}_${auction.adserverType}_${!!auction.isPostPrebid}`;
       (byTimeout[key] = byTimeout[key] || []).push(auction);
     });
     for (const key in byTimeout) {
@@ -204,19 +125,25 @@ class PostbidAuction extends AuctionBase
       const results = [];
       const adUnits = arr.map(auction => auction.getPrebidElement());
       const pbjs = arr[0].pbjs;
-      pbjs.que.push(() => {
-        pbjs.addAdUnits(adUnits);
-        pbjs.requestBids({
-          adUnitCodes: adUnits.map(unit => unit.code),
-          timeout: arr[0].bidTimeOut,
-          bidsBackHandler: () => arr.forEach(auction => auction.onBidsBack((result) => {
-            results.push({ result, auction });
-            if (results.length === arr.length) {
-              PostbidAuction.onRenderCallsDone(results);
-            }
-          })),
+
+      const callBidsBack = () => arr.forEach(auction => auction.onBidsBack((result) => {
+        results.push({ result, auction });
+        if (results.length === arr.length) {
+          PostbidAuction.onRenderCallsDone(results);
+        }
+      }));
+      if(arr[0].isPostPrebid) {
+        callBidsBack();
+      } else {
+        pbjs.que.push(() => {
+          pbjs.addAdUnits(adUnits);
+          pbjs.requestBids({
+            adUnitCodes: adUnits.map(unit => unit.code),
+            timeout: arr[0].bidTimeOut,
+            bidsBackHandler: callBidsBack,
+          });
         });
-      });
+      }
     }
   }
 
@@ -365,12 +292,15 @@ class PostbidAuction extends AuctionBase
       this.iframe.contentWindow.passback = () => {
         if(this.googlePassbackUnit) {
           this.initGooglePassbackUnit(onRenderTriggered);
-        } else {
+        } else if (this.legacyPassbackHtml) {
           this.showIframe();
           ifrDoc.write(eval("'" + (this.legacyPassbackHtml || '') + "'"));
           this.event('onAdResponse', { type: 'legacy', width, height });
           onRenderTriggered({ type: 'legacy' });
           this.startResizer();
+        } else {
+          this.event('onAdResponse', { type: 'prebid', noAd: true, width: 0, height: 0 });
+          onRenderTriggered({ type: 'none' });
         }
       };
       ifrDoc.write(PASSBACK_HTML);

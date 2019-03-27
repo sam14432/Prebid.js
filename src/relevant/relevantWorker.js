@@ -86,6 +86,11 @@ class RelevantWorker
   }
 
   doPostbid(param) {
+    const { prebid } = this.worker;
+    let postbidParams = param;
+    if(prebid && !param.isPostPrebid && prebid.renderUsingParams(param, true)) {
+      return;
+    }
     const postbid = new PostbidAuction(this, param);
     postbid.init();
     this.pendingAuctions.push(postbid);
