@@ -57,11 +57,11 @@ class AuctionBase
           singleRequest: true,
         }
       }
-      const cfg = mergeNonExisting({}, this.pbjsConfig, adserver.getPbjsConfig(), PREBID_DEFAULT_CONFIG);
+      const cfg = mergeNonExisting({}, this.pbjsConfig, this.adserver.getPbjsConfig(), PREBID_DEFAULT_CONFIG);
       this.pbjs.setConfig(cfg);
     }
   }
 
 }
 
-export default PrebidAuction;
+export default AuctionBase;

@@ -1,8 +1,10 @@
 /* eslint-disable */
+import find from 'core-js/library/fn/array/find';
 import AuctionBase from './auctionBase';
 
 const DEFAULT = {
   failsafeTimeout: 2000,
+  delayStartPrebid: true,
 };
 
 const DEFAULT_GOOGLE_PATH_PREPEND = '/3377764/';
@@ -17,23 +19,59 @@ class PrebidAuction extends AuctionBase
     });
   }
 
-  sendAdserverRequest(gotBids) {
-    this.log(`Sending adserver request ${gotBids ? 'WITHOUT bids (timeout)' : 'with bids'}`);
+  auctionType() { return 'prebid'; }
+
+  allAdUnits() {
+    const res = [];
+    for(const key in this.unitsByCode) {
+      res.push(this.unitsByCode[key]);
+    }
+    return res;
+  }
+
+  sendAdserverRequest(gotTimeout) {
+    if (this.adserverRequestTriggered) {
+      return;
+    }
+    this.adserverRequestTriggered = true;
+    this.log(`Sending adserver request ${gotTimeout ? 'WITHOUT all bids (timeout)' : 'with all bids'}`);
     this.adserver.sendAdserverRequest(this);
+  }
+
+  startPrebid(codes) {
+    const { pbjs } = this.worker;
+    const adUnits = this.allAdUnits().filter(unit => !unit.prebidStarted && (!codes || codes.indexOf(unit.code) >= 0));
+    if(!adUnits.length) {
+      return [];
+    }
+    pbjs.addAdUnits(adUnits);
+    adUnits.forEach((adUnit) => {
+      adUnit.prebidStarted = true;
+    });
+    pbjs.requestBids({
+      adUnitCodes: adUnits.map(unit => unit.code),
+      timeout: this.bidTimeOut,
+      bidsBackHandler: () => {
+        adUnits.forEach((adUnit) => {
+          adUnit.prebidGotBidsBack = true;
+        });
+        if(!find(this.allAdUnits, u => u.prebidStarted && !u.prebidGotBidsBack)) {
+          this.sendAdserverRequest(false);
+        }
+      },
+    });
+    return adUnits;
   }
 
   init() {
     super.init();
     this.event('onInitPrebid');
     this.adserver.initPrebidAuction(this);
-    this.pbjs.addsAdUnits(this.adUnits);
-    this.pbjs.requestBids({
-      adUnitCodes: this.adUnits.map(unit => unit.code),
-      timeout: this.bidTimeOut,
-      bidsBackHandler: () => this.sendAdserverRequest(true),
-    });
+    if(!this.delayStartPrebid) {
+      this.startPrebid();
+    }
     this.event('onInitPrebidDone');
-    setTimeout(() => this.sendAdserverRequest(false), this.failsafeTimeout);
+    setTimeout(() => this.sendAdserverRequest(true), this.failsafeTimeout);
   }
 
   renderUsingParams(param, calledFromPostbid) {
@@ -45,7 +83,7 @@ class PrebidAuction extends AuctionBase
       return false;
     }
     const adUnit = this.unitsByCode[code];
-    if (adUnit) {
+    if (!adUnit || !adUnit.prebidStarted) {
       return false;
     }
 
@@ -60,7 +98,7 @@ class PrebidAuction extends AuctionBase
       isPostPrebid: true,
       logIdentifier: code,
       sizes: getSizes(),
-      adserverType: adserverType,
+      adserverType: this.adserverType,
       hacks: this.hacks,
     };
 

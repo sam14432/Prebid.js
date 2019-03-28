@@ -1,23 +1,26 @@
 <!-- Implements relevantSasCmd() that should be used *instead* of sas.cmd.push() -->
 <script>
 (function () {
-   window.sas = sas || {};
-   sas.cmd = sas.cmd || [];
+	window.sas = sas || {};
+	sas.cmd = sas.cmd || [];
 
 	/** Global settings object that will be used by Relevant's Prebid version (and here) */
 	window.RELEVANT_POSTBID_CONFIG = {
 		prebidAborted: false, // Set to true to skip prebid completely
 		loadRelevantClientLib: true, // Set to false if relevant-client-lib.js is loaded directly on the page instead
-		events: {
-			/** Callback when prebid is intialized and the Smart cmds are ready to be called */
-			onInitPrebidDone: function() {
-				prebidInitialized = true;
-				flushSasOps();
-			}
+
+		/** Callback when prebid is intialized and the Smart cmds are ready to be called */
+		onInitPrebidDone: function() {
+			prebidInitialized = true;
+			flushSasOps();
 		},
 	};
+
 	/** How long time to wait *without* getting the onInitPrebidDone() callback above - until we skip prebid and calls Smart without prebid */
 	var TIMEOUT_MS = 1000;
+
+	/** Overwrites sas.cmd.push with relevantSasCmd - in case that change have not been done everywhere */
+	var INJECT_SMART_CMD = true;
 
 	/** If we're not using prebid, just run all Smart calls as usual */
 	if(RELEVANT_POSTBID_CONFIG.prebidAborted) {
@@ -26,33 +29,56 @@
 		}
 		return;
 	}
+
 	var pendingSasOps = []; ///< Smart cmds that are queued until prebid is initialized *or* until we've timed out
 	var prebidInitialized = false; ///< Will be set to true by the onInitPrebidDone() callback above
+	var orgSasPush; // original sas.cmd.push when INJECT_SMART_CMD = true
 
-	/** Flush pending Smart cmds */	
+	/** INJECT_SMART_CMD */
+    function sasPush(fn) {
+		if(orgSasPush) {
+			orgSasPush.call(sas.cmd, fn);
+        } else {
+			sas.cmd.push(fn);
+        }
+    }
+
+	/** Flush pending Smart cmds */
 	function flushSasOps() {
 		for(var i = 0; i < pendingSasOps.length; i++) {
-			sas.cmd.push(pendingSasOps[i]);
+			sasPush(pendingSasOps[i]);
 		}
 		pendingSasOps = null;
 	}
 
-	/** Replacement for sas.cmd.push(), will delay calling that function until prebid is initalized (or we've timed out) */	
+	/** Replacement for sas.cmd.push(), will delay calling that function until prebid is initalized (or we've timed out) */
 	window.relevantSasCmd = function(fn) {
 		if(!prebidInitialized || RELEVANT_POSTBID_CONFIG.prebidAborted) {
-			sas.cmd.push(fn)
+			sasPush(fn)
 		} else {
 			pendingSasOps.push(fn);
 		}
 	}
-	
-	/** Will abort attempt to use prebid and run all pending Smart cmds if Prebid has not been initialized after TIMEOUT_MS */	
+
+	/** Will abort attempt to use prebid and run all pending Smart cmds if Prebid has not been initialized after TIMEOUT_MS */
 	setTimeout(function() {
 		if(!prebidInitialized) {
 			RELEVANT_POSTBID_CONFIG.prebidAborted = true;
 			flushSasOps();
 		}
 	}, TIMEOUT_MS);
+
+	if(INJECT_SMART_CMD) {
+		pendingSasOps = sas.cmd.slice();
+		orgSasPush = sas.cmd.push;
+		Object.defineProperty(sas.cmd, 'push', {
+			get: function() { return relevantSasCmd; },
+			set: (orgFn) => {
+				orgSasPush = orgFn;
+			},
+		});
+
+    }
 })()
 </script>
 <script async src='//apps-cdn.relevant-digital.com/tags/my_prebid_config.js'></script>

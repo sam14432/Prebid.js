@@ -66,7 +66,7 @@ const setSize = (elm, width, height, useDisplayNone) => {
   }
 };
 
-createIframe = (location, width, height, hidden) => {
+const createIframe = (location, width, height, hidden) => {
   let { win, insertAfter, appendTo } = location || {};
   if (!win) {
     throw Error('location.win not defined');
@@ -122,4 +122,6 @@ module.exports = {
   injectCall,
   asElm,
   setSize,
+  createIframe,
+  isFunction,
 };

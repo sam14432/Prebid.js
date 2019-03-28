@@ -14,9 +14,40 @@ const isAdUnitCode = (str) => {
   return true;
 };
 
+const toParts = s => (s || '').split(',').filter(s => s);
+
 const extractAdUnitCode = (str) => {
   const match = /defineSlot\s?\(\s?["'](.*?)["']/.exec(str);
   return (match || [])[1];
+};
+
+const getTagIds = (sasCallParams) => {
+  const { formats, formatId, tagId } = sasCallParams;
+  if (formats) {
+    return formats.map(f => f.tagId ? f.tagId : `sas_${f.id}`)
+  }
+  const tagParts = toParts(tagId);
+  return toParts(formatId).map((s, i) => tagParts[i] || `sas_${s}`);
+};
+
+const toPostParam = (param) => {
+  if (param.formats) {
+    return param; // already on POST format
+  }
+  const tagIds = toParts(param.tagId);
+  const newParam = Object.assign({}, param, {
+    formats: toParts(param.formatId).map((s, i) => {
+      const obj = { id: parseInt(s.trim()) };
+      const tagId = tagIds[i];
+      if (tagId) {
+        obj.tagId = tagId;
+      }
+      return obj;
+    }),
+  });
+  delete newParam.formatId;
+  delete newParam.tagId;
+  return newParam;
 };
 
 class SmartAdserver extends AdserverBase {
@@ -37,40 +68,41 @@ class SmartAdserver extends AdserverBase {
     super.initPostbidAuction(auction);
   }
 
+  setupNoAdOptions(auction, options) {
+    const newOptions = Object.assign({}, options);
+    const { onNoad } = newOptions; // old onNoad callback
+    newOptions.onNoad = (param, ...rest2) => {
+      const triggerNoad = () => (onNoad ? onNoad.call(options, param, ...rest2) : null);
+      const renderParams = {
+        tagId: param.tagId,
+        events: {
+          onAdResponse: ({ noAd }) => {
+            if (noAd) {
+              triggerNoad();
+            }
+          },
+        },
+      };
+      const rendered = auction.renderUsingParams(renderParams);
+      if (!rendered) {
+        triggerNoad();
+      }
+    };
+    return newOptions;
+  }
+
   injectSmartCall(auction) {
     injectCall(sas, 'setup', (sasSetup, param, ...rest) => {
-      param.renderMode = 2; // delay call
-      return sasSetup(Object.assignparam, ...rest);
+      return sasSetup(Object.assign({}, param, { renderMode: 2 }), ...rest);
     });
     injectCall(sas, 'call', (sasCall, type, param, options, ...rest) => {
       let newParam = param;
-      let newOptions = options;
       if (type === 'onecall') {
-        if (!param.formats && param.formatId) {
-          newParam = Object.assign({}, param, {
-            formats: param.formatId.split(',').filter(s => s).map(s => parseInt(s.trim())),
-          });
-          delete newParam.formatId;
-        }
-        newOptions = Object.assign({}, options);
-        const { onNoad } = newOptions; // old onNoad callback
-        newOptions.onNoad = (param, ...rest2) => {
-          const rendered = auction.renderUsingParams({
-            tagId: param.tagId,
-            events: {
-              onAdResponse: ({ noAd }) => {
-                if (onNoad) {
-                  onNoad.call(options, ...rest2);
-                }
-              },
-            },
-          });
-          if (!rendered) {
-            onNoad.call(options, ...rest2);
-          }
-        };
+        newParam = toPostParam(param);
       }
-      return sasCall(newParam, newOptions, ...rest);
+      const newOptions = this.setupNoAdOptions(auction, options);
+      auction.startPrebid(getTagIds(newParam));
+      return sasCall.call(sas, type, newParam, newOptions, ...rest);
     });
   }
 
@@ -109,16 +141,11 @@ class SmartAdserver extends AdserverBase {
   }
 
   sendAdserverRequest(auction) {
-    if (this.adserverRequestTriggered) {
-      return;
-    }
-    this.adserverRequestTriggered = true;
     sas.cmd.push(() => {
       auction.adUnits.forEach((adUnit) => {
         const bid = auction.pbjs.getHighestCpmBids(adUnit.code)[0];
         if (bid) {
           sas.setHeaderBiddingWinner(adUnit.code, bid);
-          auction.addWinningBid(adUnit.code, bid);
         }
       });
       sas.render();

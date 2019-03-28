@@ -10,6 +10,7 @@ import { isFunction } from './utils';
 
 const logToConsole = ~location.toString().indexOf('relevant-console');
 const prebidDebug = ~location.toString().indexOf('relevant-debug');
+const noCatch = ~location.toString().indexOf('relevant-no-catch');
 
 class RelevantWorker
 {
@@ -50,7 +51,8 @@ class RelevantWorker
       postbid: param => this.doPostbid(param),
       prebid: param => this.doPrebid(param),
     };
-    try {
+
+    const runInternal = () => {
       if(isFunction(param)) {
         param();
       } else {
@@ -59,6 +61,15 @@ class RelevantWorker
         }
         CMDS[param.cmd](param.param);
       }
+    };
+
+    if(noCatch) {
+      runInternal();
+      return;
+    }
+
+    try {
+      runInternal();
     } catch(e) {
       RelevantWorker.log(`Command error: ${e.message}`);
       if(param.onError) {
@@ -92,7 +103,7 @@ class RelevantWorker
   }
 
   doPostbid(param) {
-    const { prebid } = this.worker;
+    const { prebid } = this;
     let postbidParams = param;
     if(prebid && !param.isPostPrebid && prebid.renderUsingParams(param, true)) {
       return;
