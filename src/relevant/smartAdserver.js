@@ -21,13 +21,13 @@ const extractAdUnitCode = (str) => {
   return (match || [])[1];
 };
 
-const getTagIds = (sasCallParams) => {
+const getFormatsAndTags = (sasCallParams) => {
   const { formats, formatId, tagId } = sasCallParams;
   if (formats) {
-    return formats.map(f => f.tagId ? f.tagId : `sas_${f.id}`)
+    return formats.map(f => ({ id: f.id, tagId: f.tagId ? f.tagId : `sas_${f.id}` }));
   }
   const tagParts = toParts(tagId);
-  return toParts(formatId).map((s, i) => tagParts[i] || `sas_${s}`);
+  return toParts(formatId).map((s, i) => ({ id: s, tagId: tagParts[i] || `sas_${s}` }));
 };
 
 const toPostParam = (param) => {
@@ -51,6 +51,11 @@ const toPostParam = (param) => {
 };
 
 class SmartAdserver extends AdserverBase {
+  constructor() {
+    super();
+    this.calledFormats = [];
+  }
+
   initPostbidAuction(auction) {
     const { legacyPassbackHtml, googlePassbackUnit } = auction;
     if (!googlePassbackUnit && legacyPassbackHtml) {
@@ -101,9 +106,26 @@ class SmartAdserver extends AdserverBase {
         newParam = toPostParam(param);
       }
       const newOptions = this.setupNoAdOptions(auction, options);
-      auction.startPrebid(getTagIds(newParam));
+      this.calledFormats.push(...getFormatsAndTags(newParam));
+      if (!auction.sasOnlyUseRendered) {
+        auction.startPrebid(this.calledFormats.map(f => f.tagId));
+      }
       return sasCall.call(sas, type, newParam, newOptions, ...rest);
     });
+    if (auction.sasOnlyUseRendered) {
+      injectCall(sas, 'render', (sasRender, fmtId, ...rest) => {
+        if (fmtId) {
+          if (!this.renderSeen) {
+            this.renderSeen = {};
+            setTimeout(() => {
+              auction.startPrebid(this.calledFormats.filter(f => this.renderSeen[f.id]).map(f => f.tagId));
+            });
+          }
+          this.renderSeen[fmtId] = true;
+        }
+        return fmtId === undefined ? sasRender.call(sas) : sasRender.call(sas, fmtId, ...rest);
+      });
+    }
   }
 
   initPrebidAuction(auction) {
@@ -131,13 +153,14 @@ class SmartAdserver extends AdserverBase {
       return null;
     }
     const res = {
-      location: { win: window, appendTo: sasDiv},
+      location: { win: window, appendTo: sasDiv },
       containers: [sasDiv],
     };
     if (!('googlePassbackUnit' in adUnit) && postbidParams) { // copy passback
       res.legacyPassbackHtml = postbidParams.legacyPassbackHtml;
       res.googlePassbackUnit = postbidParams.googlePassbackUnit;
     }
+    return res;
   }
 
   sendAdserverRequest(auction) {

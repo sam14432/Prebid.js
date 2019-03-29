@@ -7,6 +7,7 @@ import PrebidAuction from './prebidAuction';
 import SmartAdserver from './smartAdserver';
 import DfpAdserver from './dfpAdserver';
 import { isFunction } from './utils';
+import { MAX_PASSBACK_GROUP_DELAY } from './constants';
 
 const logToConsole = ~location.toString().indexOf('relevant-console');
 const prebidDebug = ~location.toString().indexOf('relevant-debug');
@@ -28,14 +29,22 @@ class RelevantWorker
     this.adservers = [];
     this.pendingAuctions = [];
     try {
-      this.pageConfig = top.RELEVANT_POSTBID_CONFIG || {};
+      this.pageConfig = top.RELEVANT_PROGRAMMATIC_CONFIG || {};
     } catch(e) {
       this.pageConfig = {};
     }
+    this.maxPassbackGroupDelay = this.pageConfig.maxPassbackGroupDelay || MAX_PASSBACK_GROUP_DELAY;
   }
 
   init() {
-    this.queue.forEach(param => this.runCmd(param));
+    this.flushQueue();
+  }
+
+  flushQueue() {
+    while(this.queue.length) { // a bit wierd loop to make sure we can call this function recursivly
+      const param = this.queue.splice(0, 1)[0];
+      this.runCmd(param);
+    }
     this.runPendingAuctions();
   }
 
@@ -124,6 +133,9 @@ class RelevantWorker
 
   runPendingAuctions() {
     const auctions = this.pendingAuctions;
+    if(!auctions.length) {
+      return;
+    }
     this.pendingAuctions = [];
     PostbidAuction.requestMultipleBids(auctions);
   }
@@ -147,8 +159,23 @@ class RelevantWorker
   }
 
   push(param) {
-    this.runCmd(param);
-    this.runPendingAuctions();
+    RelevantWorker.log(`log: ${param.cmd} - ${param.param.logIdentifier}`);
+    let { groupMaxDelay } = param;
+    if(groupMaxDelay === undefined) {
+      if (param.cmd === 'postbid') {
+        groupMaxDelay = this.maxPassbackGroupDelay;
+      }
+    }
+    this.queue.push(param);
+    if (!groupMaxDelay) {
+      this.flushQueue();
+    } else {
+      const newDelayEnd = new Date() + groupMaxDelay;
+      if(!this.delayEnd || newDelayEnd < this.delayEnd) {
+        this.delayEnd = newDelayEnd;
+        setTimeout(() => this.flushQueue(), groupMaxDelay);
+      }
+    }
   }
 
   static staticInit() {

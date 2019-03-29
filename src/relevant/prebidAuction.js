@@ -1,13 +1,12 @@
 /* eslint-disable */
 import find from 'core-js/library/fn/array/find';
 import AuctionBase from './auctionBase';
+import { DEFAULT_GOOGLE_PATH_PREPEND } from './constants';
 
 const DEFAULT = {
   failsafeTimeout: 2000,
   delayStartPrebid: true,
 };
-
-const DEFAULT_GOOGLE_PATH_PREPEND = '/3377764/';
 
 class PrebidAuction extends AuctionBase
 {
@@ -44,6 +43,7 @@ class PrebidAuction extends AuctionBase
     if(!adUnits.length) {
       return [];
     }
+    this.log(`Requesting bids: ${ adUnits.map(u => u.code).join(', ')}`);
     pbjs.addAdUnits(adUnits);
     adUnits.forEach((adUnit) => {
       adUnit.prebidStarted = true;
@@ -52,6 +52,7 @@ class PrebidAuction extends AuctionBase
       adUnitCodes: adUnits.map(unit => unit.code),
       timeout: this.bidTimeOut,
       bidsBackHandler: () => {
+        this.log(`Bids back: ${ adUnits.map(u => u.code).join(', ')}`);
         adUnits.forEach((adUnit) => {
           adUnit.prebidGotBidsBack = true;
         });
@@ -92,6 +93,7 @@ class PrebidAuction extends AuctionBase
       if(!sizes || !sizes.length) {
         throw Error(`Failed gettings sizes for adUnit '${code}'`);
       }
+      return sizes;
     }
 
     const newParams = {
