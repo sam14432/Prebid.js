@@ -7,10 +7,10 @@
 		/** Global settings object that will be used by Relevant's Prebid version (and here) */
 		window.RELEVANT_PROGRAMMATIC_CONFIG = {
 			prebidAborted: false, // Set to true to skip prebid completely
-			loadRelevantClientLib: true, // Set to false if relevant-client-lib.js is loaded directly on the page instead
 
 			/** Callback when prebid is intialized and the Smart cmds are ready to be called */
-			onInitPrebidDone: function() {
+			onInitPrebidDone: function(param) {
+				param.auction.log('onInitPrebidDone after ' + (new Date() - timeoutStart) + ' ms');
 				prebidInitialized = true;
 				flushSasOps();
 			},
@@ -33,6 +33,7 @@
 		var pendingSasOps = []; ///< Smart cmds that are queued until prebid is initialized *or* until we've timed out
 		var prebidInitialized = false; ///< Will be set to true by the onInitPrebidDone() callback above
 		var orgSasPush; // original sas.cmd.push when INJECT_SMART_CMD = true
+		var timeoutStart;
 
 		/** INJECT_SMART_CMD */
 		function sasPush(fn) {
@@ -61,8 +62,10 @@
 		}
 
 		/** Will abort attempt to use prebid and run all pending Smart cmds if Prebid has not been initialized after TIMEOUT_MS */
+		timeoutStart = new Date();
 		setTimeout(function() {
 			if(!prebidInitialized) {
+				console.warn('Aborting loading of Prebid.js after ' + TIMEOUT_MS + ' ms');
 				RELEVANT_PROGRAMMATIC_CONFIG.prebidAborted = true;
 				flushSasOps();
 			}

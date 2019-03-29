@@ -99,19 +99,21 @@ class PostbidAuction extends AuctionBase
 
   static onRenderCallsDone(results) {
     const withGptPassback = results.filter(r => r.result.type === 'google') || {};
-    if(withGptPassback.length) {
-      const { auction, result } = withGptPassback[0];
+    if(!withGptPassback.length) {
+      return;
+    }
+    const initializedGoogleTags = [];
+    withGptPassback.forEach(({ auction, result }) => {
       const { googletag } = result;
-      if (!(auction.adserver instanceof DfpAdserver) && !googletag.pubadsReady) {
+      if (!(auction.adserver instanceof DfpAdserver) && !googletag.pubadsReady && initializedGoogleTags.indexOf(googletag) < 0) {
         googletag.pubads().collapseEmptyDivs(true);
         googletag.pubads().enableSingleRequest();
         googletag.enableServices();
+        initializedGoogleTags.push(googletag);
       }
-      withGptPassback.forEach(({ auction }) => {
-        auction.log('calling googletag.display()');
-        googletag.display(auction.gptDivId);
-      });
-    }
+      auction.log('calling googletag.display()');
+      googletag.display(auction.gptDivId);
+    });
   }
 
   static requestMultipleBids(auctions) {
@@ -198,7 +200,9 @@ class PostbidAuction extends AuctionBase
     const gptTarget = doc.createElement('div');
     elm.appendChild(gptTarget);
     gptTarget.setAttribute('id', this.gptDivId);
-    setSize(elm, dimensions.width, dimensions.height);
+    if(dimensions) {
+      setSize(elm, dimensions.width, dimensions.height);
+    }
     return elm;
   };
 
@@ -246,6 +250,7 @@ class PostbidAuction extends AuctionBase
       this.showIframe();
     }
     googletag.cmd.push(() => {
+      //googletag.openConsole();
       googletag.pubads().addEventListener('slotRenderEnded', ev => this.onGooglePassbackRendered(ev));
       googletag.defineSlot(googlePassbackUnit, sizes, this.gptDivId).addService(googletag.pubads());
       onRenderTriggered({ type: 'google', googletag });

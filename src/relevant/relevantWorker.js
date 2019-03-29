@@ -50,8 +50,8 @@ class RelevantWorker
 
   event(type, params) {
     const { pageConfig } = this;
-    if (pageConfig.type) {
-      pageConfig.type(params);
+    if (pageConfig[type]) {
+      pageConfig[type](params);
     }
   }
 
@@ -159,7 +159,7 @@ class RelevantWorker
   }
 
   push(param) {
-    RelevantWorker.log(`log: ${param.cmd} - ${param.param.logIdentifier}`);
+    //RelevantWorker.log(`log: ${param.cmd} - ${param.param.logIdentifier}`);
     let { groupMaxDelay } = param;
     if(groupMaxDelay === undefined) {
       if (param.cmd === 'postbid') {

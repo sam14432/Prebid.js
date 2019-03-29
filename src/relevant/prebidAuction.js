@@ -2,9 +2,10 @@
 import find from 'core-js/library/fn/array/find';
 import AuctionBase from './auctionBase';
 import { DEFAULT_GOOGLE_PATH_PREPEND } from './constants';
+import { isFunction } from './utils';
 
 const DEFAULT = {
-  failsafeTimeout: 2000,
+  failsafeTimeout: 1000,
   delayStartPrebid: true,
 };
 
@@ -13,6 +14,16 @@ class PrebidAuction extends AuctionBase
   constructor(worker, params) {
     super(worker, params, DEFAULT);
     this.unitsByCode = {};
+    let filterFn = () => true;
+    const { allowedAdUnits } = this;
+    if(allowedAdUnits) {
+      if (isFunction(allowedAdUnits)) {
+        filterFn = allowedAdUnits
+      } else if (Array.isArray(allowedAdUnits)) {
+        filterFn = u => allowedAdUnits.indexOf(u.code) >= 0;
+      }
+    }
+    this.adUnits = this.adUnits.filter(filterFn);
     this.adUnits.forEach((adUnit) => {
       this.unitsByCode[adUnit.code] = adUnit;
     });
@@ -50,7 +61,7 @@ class PrebidAuction extends AuctionBase
     });
     pbjs.requestBids({
       adUnitCodes: adUnits.map(unit => unit.code),
-      timeout: this.bidTimeOut,
+      //timeout: this.bidTimeOut,
       bidsBackHandler: () => {
         this.log(`Bids back: ${ adUnits.map(u => u.code).join(', ')}`);
         adUnits.forEach((adUnit) => {
@@ -101,7 +112,9 @@ class PrebidAuction extends AuctionBase
       logIdentifier: code,
       sizes: getSizes(),
       adserverType: this.adserverType,
+      forcePassbackInIframe: this.forcePassbackInIframe,
       hacks: this.hacks,
+      unitId: code,
     };
 
     /** googlePassbackUnit not specified in adUnit => use from postbid if it exist
