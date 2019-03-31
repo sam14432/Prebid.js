@@ -4,7 +4,7 @@ import WinSizeCalculator from './winSizeCalculator';
 import DfpAdserver from './dfpAdserver';
 import Hacks from './hacks';
 import AuctionBase from './auctionBase';
-import { setSize, createIframe } from './utils';
+import { setSize, createIframe, isIframeAccessible } from './utils';
 
 const PASSBACK_HTML = `
   <!DOCTYPE html>
@@ -190,6 +190,9 @@ class PostbidAuction extends AuctionBase
         node.style.setProperty('margin', '0px', 'important');
       } while (node !== this.gptDiv);
     } else {
+      this.resize(width, height);
+    }
+    if (this.useIframeResizer) {
       this.startResizer(ifr);
     }
   }
@@ -211,7 +214,7 @@ class PostbidAuction extends AuctionBase
   }
 
   initGooglePassbackUnit(onRenderTriggered) {
-    const { googlePassbackUnit, initWidth, initHeight, sizes, adserver } = this;
+    const { googlePassbackUnit, initWidth, initHeight, sizes, googleDimensions, adserver } = this;
     this.gptDivId = `div-gpt-id-${Math.random().toString().substring(2)}-0`;
     let adContainer, googletag;
     try {
@@ -252,12 +255,15 @@ class PostbidAuction extends AuctionBase
     googletag.cmd.push(() => {
       //googletag.openConsole();
       googletag.pubads().addEventListener('slotRenderEnded', ev => this.onGooglePassbackRendered(ev));
-      googletag.defineSlot(googlePassbackUnit, sizes, this.gptDivId).addService(googletag.pubads());
+      googletag.defineSlot(googlePassbackUnit, googleDimensions || sizes, this.gptDivId).addService(googletag.pubads());
       onRenderTriggered({ type: 'google', googletag });
     });
   }
 
   startResizer(childIframe) {
+    if(!isIframeAccessible(childIframe)) {
+       return; // cross-domain iframe (perhaps a safe-frame), ignore
+    }
     const szCalc = new WinSizeCalculator({
       win: (childIframe || this.iframe).contentWindow,
       onDimensions: (width, height, ifr) => {

@@ -73,11 +73,16 @@ class SmartAdserver extends AdserverBase {
     super.initPostbidAuction(auction);
   }
 
-  setupNoAdOptions(auction, options) {
+  setupOptions(auction, options) {
     const newOptions = Object.assign({}, options);
-    const { onNoad } = newOptions; // old onNoad callback
-    newOptions.onNoad = (param, ...rest2) => {
-      const triggerNoad = () => (onNoad ? onNoad.call(options, param, ...rest2) : null);
+    const { onNoad, onLoad } = newOptions; // old callbacks
+    newOptions.onLoad = (param, ...rest) => {
+      if (onLoad) {
+        onLoad(Object.assign({}, param, { hasAd: true }), ...rest);
+      }
+    };
+    newOptions.onNoad = (param, ...rest) => {
+      const triggerNoad = () => (onNoad ? onNoad.call(options, param, ...rest) : null);
       const renderParams = {
         tagId: param.tagId,
         events: {
@@ -105,7 +110,7 @@ class SmartAdserver extends AdserverBase {
       if (type === 'onecall') {
         newParam = toPostParam(param);
       }
-      const newOptions = this.setupNoAdOptions(auction, options);
+      const newOptions = this.setupOptions(auction, options);
       this.calledFormats.push(...getFormatsAndTags(newParam));
       if (!auction.sasOnlyUseRendered) {
         auction.startPrebid(this.calledFormats.map(f => f.tagId));
@@ -114,6 +119,7 @@ class SmartAdserver extends AdserverBase {
     });
     if (auction.sasOnlyUseRendered) {
       injectCall(sas, 'render', (sasRender, fmtId, ...rest) => {
+        auction.log('Render: ' + fmtId);
         if (fmtId) {
           if (!this.renderSeen) {
             this.renderSeen = {};

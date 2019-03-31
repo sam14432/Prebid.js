@@ -117,6 +117,17 @@ const createIframe = (location, width, height, hidden) => {
 
 const isFunction = obj => ({}).toString.call(obj) === '[object Function]';
 
+const isIframeAccessible = (ifr) => {
+  try {
+    if (ifr.contentWindow.dummyAccessCheck) {
+      console.info();
+    }
+  } catch (e) {
+    return false;
+  }
+  return true;
+};
+
 module.exports = {
   mergeNonExisting,
   injectCall,
@@ -124,4 +135,5 @@ module.exports = {
   setSize,
   createIframe,
   isFunction,
+  isIframeAccessible,
 };

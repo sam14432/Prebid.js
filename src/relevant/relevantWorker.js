@@ -173,7 +173,10 @@ class RelevantWorker
       const newDelayEnd = new Date() + groupMaxDelay;
       if(!this.delayEnd || newDelayEnd < this.delayEnd) {
         this.delayEnd = newDelayEnd;
-        setTimeout(() => this.flushQueue(), groupMaxDelay);
+        setTimeout(() => {
+          this.delayEnd = null;
+          this.flushQueue();
+        }, groupMaxDelay);
       }
     }
   }

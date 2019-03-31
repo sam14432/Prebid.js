@@ -9,6 +9,15 @@ const DEFAULT = {
   delayStartPrebid: true,
 };
 
+const PREBID_COPY_VARS = [
+  'hacks',
+  'checkIvl',
+  'sizeCheckDuration',
+  'adserverType',
+  'forcePassbackInIframe',
+  'useIframeResizer',
+];
+
 class PrebidAuction extends AuctionBase
 {
   constructor(worker, params) {
@@ -111,11 +120,14 @@ class PrebidAuction extends AuctionBase
       isPostPrebid: true,
       logIdentifier: code,
       sizes: getSizes(),
-      adserverType: this.adserverType,
-      forcePassbackInIframe: this.forcePassbackInIframe,
       hacks: this.hacks,
       unitId: code,
     };
+    PREBID_COPY_VARS.forEach((varName) => {
+      if(varName in this) {
+        newParams[varName] = this[varName];
+      }
+    });
 
     /** googlePassbackUnit not specified in adUnit => use from postbid if it exist
      *  googlePassbackUnit is null/empty in adUnit => no dfp passback */
@@ -126,6 +138,7 @@ class PrebidAuction extends AuctionBase
       }
       newParams.googlePassbackUnit = googlePassbackUnit || null;
     }
+    newParams.googleDimensions = adUnit.googleDimensions;
 
     const adserverParams = this.adserver.getPostPrebidParams(this, adUnit, calledFromPostbid ? param : null, newParams);
     if(!adserverParams) {
@@ -133,7 +146,11 @@ class PrebidAuction extends AuctionBase
     }
     Object.assign(newParams, adserverParams);
 
-    this.worker.push({ cmd: 'postbid', param: newParams });
+    this.worker.push({
+      cmd: 'postbid',
+      param: newParams,
+      groupMaxDelay: calledFromPostbid ? 0 : undefined, // if called-from-postbid => we have already had delay, else undefined => use delay
+    });
     return true;
   }
 
