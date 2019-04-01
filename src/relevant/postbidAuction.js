@@ -160,26 +160,19 @@ class PostbidAuction extends AuctionBase
     this.event('onAdDimensions', params);
   }
 
-  onGooglePassbackRendered(ev) {
-    if(ev.slot.getSlotElementId() !== this.gptDivId) {
-      return;
+  onPassbackEmpty(responseParams, ifr) {
+    setSize(this.gptDiv, Math.max(0, this.minWidth), Math.max(0, this.minHeight));
+    if(!this.passbackRunInTop) {
+      this.resize(0, 0);
+      setSize(this.gptDiv, 0, 0);
     }
-    if(ev.isEmpty) {
-      setSize(this.gptDiv, Math.max(0, this.minWidth), Math.max(0, this.minHeight));
-      if(!this.passbackRunInTop) {
-        this.resize(0, 0);
-        setSize(this.gptDiv, 0, 0);
-      }
-      this.event('onAdResponse', { type: 'google', googleParams: ev, noAd: true, width: 0, height: 0 });
-      return;
+    if(ifr) {
+      ifr.style.display = 'none';
     }
-    const [width, height] = ev.size;
-    this.event('onAdResponse', { type: 'google', googleParams: ev, width, height });
-    const ifr = this.gptDiv.getElementsByTagName("iframe")[0];
-    if(!ifr) {
-      this.log("Failed to find passback iframe");
-      return;
-    }
+    this.event('onAdResponse', Object.assign({ noAd: true, width: 0, height: 0 }, responseParams));
+  }
+
+  onPassbackHasAd(responseParams, ifr, width, height) {
     setSize(this.gptDiv, 'auto', 'auto');
     if(this.passbackRunInTop) {
       this.iframe = ifr;
@@ -194,6 +187,51 @@ class PostbidAuction extends AuctionBase
     }
     if (this.useIframeResizer) {
       this.startResizer(ifr);
+    }
+    this.event('onAdResponse', Object.assign({ width, height }, responseParams));
+  }
+
+  onGooglePassbackRendered(ev) {
+    if(ev.slot.getSlotElementId() !== this.gptDivId) {
+      return;
+    }
+    if(ev.isEmpty) {
+      this.onPassbackEmpty({ type: 'google', googleParams: ev });
+      return;
+    }
+    const [width, height] = ev.size;
+    const ifr = this.gptDiv.getElementsByTagName("iframe")[0];
+    if(!ifr) {
+      this.log("Failed to find passback iframe");
+      return;
+    }
+
+    // Check Smart passback
+    if(isIframeAccessible(ifr) && ifr.contentWindow.sas && ifr.contentWindow.sas.cmd) {
+      const { sas } = ifr.contentWindow;
+      let noad = false;
+      const onNoad = () => {
+        noad = true;
+        this.onPassbackEmpty({ type: 'smart', googleParams: ev }, ifr);
+      };
+      const onLoad = () => {
+        if(!noad) {
+          this.onPassbackHasAd({ type: 'smart', googleParams: ev }, ifr, width, height);
+        }
+      }
+      sas.cmd.push(() => {
+        sas.events.on('noad', onNoad);
+        sas.events.on('load', onLoad);
+        sas.events.history().forEach(({ eventName }) => {
+          if(eventName === 'load') {
+            onLoad();
+          } else if(eventName === 'noad') {
+            onNoad();
+          }
+        });
+      });
+    } else {
+      this.onPassbackHasAd({ type: 'google', googleParams: ev }, ifr, width, height);
     }
   }
 

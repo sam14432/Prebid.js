@@ -9,9 +9,11 @@ import DfpAdserver from './dfpAdserver';
 import { isFunction } from './utils';
 import { MAX_PASSBACK_GROUP_DELAY } from './constants';
 
-const logToConsole = ~location.toString().indexOf('relevant-console');
-const prebidDebug = ~location.toString().indexOf('relevant-debug');
-const noCatch = ~location.toString().indexOf('relevant-no-catch');
+const hasDebugOption = opt => ~location.toString().indexOf(opt) || ~document.cookie.indexOf(opt);
+
+const logToConsole = hasDebugOption('relevant-console');
+const prebidDebug = hasDebugOption('relevant-debug');
+const noCatch = hasDebugOption('relevant-no-catch');
 
 class RelevantWorker
 {

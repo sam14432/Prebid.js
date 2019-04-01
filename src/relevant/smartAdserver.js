@@ -56,6 +56,12 @@ class SmartAdserver extends AdserverBase {
     this.calledFormats = [];
   }
 
+  createGptPassbackDiv(auction, adContainer, dimensions) {
+    const gptDiv = auction.createGptDiv(top.document, { width: '100%', height: '100%' }); // ignore dimensions, start collapsed
+    adContainer.appendChild(gptDiv);
+    return gptDiv;
+  }
+
   initPostbidAuction(auction) {
     const { legacyPassbackHtml, googlePassbackUnit } = auction;
     if (!googlePassbackUnit && legacyPassbackHtml) {
