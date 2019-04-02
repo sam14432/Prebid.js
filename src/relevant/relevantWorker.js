@@ -7,6 +7,7 @@ import PrebidAuction from './prebidAuction';
 import SmartAdserver from './smartAdserver';
 import DfpAdserver from './dfpAdserver';
 import { isFunction } from './utils';
+import { MAX_POSTBID_GROUP_DELAY, DEFAULT_GOOGLE_PATH_PREPEND } from './constants';
 
 const hasDebugOption = opt => ~location.toString().indexOf(opt) || ~document.cookie.indexOf(opt);
 
@@ -29,10 +30,15 @@ class RelevantWorker
     this.pbjs = pbjs;
     this.adservers = [];
     this.pendingAuctions = [];
+    this.isFlushingQueue = 0;
     try {
       this.pageConfig = top.RELEVANT_PROGRAMMATIC_CONFIG || {};
     } catch(e) {
       this.pageConfig = {};
+    }
+    this.maxPassbackGroupDelay = MAX_POSTBID_GROUP_DELAY;
+    if('maxPassbackGroupDelay' in this.pageConfig) {
+      this.maxPassbackGroupDelay = this.pageConfig.maxPassbackGroupDelay;
     }
   }
 
@@ -41,11 +47,16 @@ class RelevantWorker
   }
 
   flushQueue() {
-    while(this.queue.length) { // a bit wierd loop to make sure we can call this function recursivly
-      const param = this.queue.splice(0, 1)[0];
-      this.runCmd(param);
+    this.isFlushingQueue++;
+    try {
+      while (this.queue.length) { // a bit wierd loop to make sure we can call this function recursivly
+        const param = this.queue.splice(0, 1)[0];
+        this.runCmd(param);
+      }
+      this.runPendingAuctions();
+    } finally {
+      this.isFlushingQueue--;
     }
-    this.runPendingAuctions();
   }
 
   event(type, params) {
@@ -161,9 +172,14 @@ class RelevantWorker
   push(param) {
     //RelevantWorker.log(`log: ${param.cmd} - ${param.param.logIdentifier}`);
     let { groupMaxDelay } = param;
+    if(groupMaxDelay === undefined && param.cmd === 'postbid') {
+      groupMaxDelay = this.maxPassbackGroupDelay;
+    }
     if (!groupMaxDelay) {
       this.runCmd(param);
-      this.runPendingAuctions();
+      if(!this.isFlushingQueue) {
+        this.runPendingAuctions();
+      }
     } else {
       this.queue.push(param);
       const newDelayEnd = new Date() + groupMaxDelay;

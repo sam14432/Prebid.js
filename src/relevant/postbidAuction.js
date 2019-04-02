@@ -4,7 +4,7 @@ import WinSizeCalculator from './winSizeCalculator';
 import DfpAdserver from './dfpAdserver';
 import Hacks from './hacks';
 import AuctionBase from './auctionBase';
-import { setSize, createIframe, isIframeAccessible } from './utils';
+import { setSize, createIframe, isIframeAccessible, asElm } from './utils';
 
 const PASSBACK_HTML = `
   <!DOCTYPE html>
@@ -21,7 +21,7 @@ const PASSBACK_HTML = `
 `;
 
 // other values: bids, sizes, legacyPassbackHtml,
-// location { win, insertAfter, insertIn }
+// location { win, insertAfter, appendTo }
 const DEFAULT = {
   bidTimeOut: 1000,
   logIdentifier: 'unknown',
@@ -69,15 +69,27 @@ class PostbidAuction extends AuctionBase
     } catch(e) { /** In un-friendly iframe */ }
   }
 
-  initIframe() {
-    if(this.iframeId) {
-      const existing = this.location.win.document.getElementById(this.iframeId);
-      if(existing) {
-        this.iframe = existing;
+  refreshLocation() {
+    ['appendTo', 'inserAfter'].forEach((name) => {
+      const old = this.location[name];
+      if(!old) {
         return;
       }
-    }
-    this.iframeId = `pb_ifr_${Math.random().toString().substring(2)}`;
+      let elm = asElm(this.location.win, old);
+      if(elm === old) {
+        const id = old.getAttribute('id');
+        if(id) {
+          const withSameId = this.location.win.document.getElementById(id);
+          if(withSameId) {
+            elm = withSameId;
+          }
+        }
+      }
+      this.location[name] = elm;
+    });
+  }
+
+  initIframe() {
     this.iframe = createIframe(this.location, this.initWidth, this.initHeight, { id: this.iframeId }, { display: 'none' });
   }
 
@@ -338,6 +350,7 @@ class PostbidAuction extends AuctionBase
 
   onBidsBack(onRenderTriggered) {
     if(!this.iframe.contentWindow) {
+      this.refreshLocation();
       this.initIframe();
       if(!this.iframe.contentWindow) {
         throw Error('Iframe error');
