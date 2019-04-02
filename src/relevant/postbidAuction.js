@@ -69,11 +69,23 @@ class PostbidAuction extends AuctionBase
     } catch(e) { /** In un-friendly iframe */ }
   }
 
+  initIframe() {
+    if(this.iframeId) {
+      const existing = this.location.win.document.getElementById(this.iframeId);
+      if(existing) {
+        this.iframe = existing;
+        return;
+      }
+    }
+    this.iframeId = `pb_ifr_${Math.random().toString().substring(2)}`;
+    this.iframe = createIframe(this.location, this.initWidth, this.initHeight, { id: this.iframeId }, { display: 'none' });
+  }
+
   init() {
     super.init();
     this.event('onInitPostbid');
     this.adserver.initPostbidAuction(this);
-    this.iframe = createIframe(this.location, this.initWidth, this.initHeight, true);
+    this.initIframe();
   }
 
   getPrebidElement() {
@@ -82,19 +94,6 @@ class PostbidAuction extends AuctionBase
       sizes: this.sizes,
       bids: this.bids,
     };
-  }
-
-  requestBids() {
-    pbjs.addAdUnits([{
-      code: this.unitId,
-      sizes: this.sizes,
-      bids: this.bids,
-    }]);
-    pbjs.requestBids({
-      adUnitCodes: [this.unitId],
-      timeout: this.bidTimeOut,
-      bidsBackHandler: () => this.onBidsBack(),
-    });
   }
 
   static onRenderCallsDone(results) {
@@ -175,6 +174,9 @@ class PostbidAuction extends AuctionBase
   onPassbackHasAd(responseParams, ifr, width, height) {
     setSize(this.gptDiv, 'auto', 'auto');
     if(this.passbackRunInTop) {
+      if(this.hidePassbackUntilFinished) {
+        this.gptDiv.style.display = '';
+      }
       this.iframe = ifr;
       this.location = { win: top };
       let node = ifr;
@@ -183,6 +185,9 @@ class PostbidAuction extends AuctionBase
         node.style.setProperty('margin', '0px', 'important');
       } while (node !== this.gptDiv);
     } else {
+      if(this.hidePassbackUntilFinished) {
+        this.showIframe();
+      }
       this.resize(width, height);
     }
     if (this.useIframeResizer) {
@@ -248,12 +253,11 @@ class PostbidAuction extends AuctionBase
   };
 
   showIframe() {
-    this.iframe.style.display = null;
+    this.iframe.style.display = '';
   }
 
-  initGooglePassbackUnit(onRenderTriggered) {
-    const { googlePassbackUnit, initWidth, initHeight, sizes, googleDimensions, adserver } = this;
-    this.gptDivId = `div-gpt-id-${Math.random().toString().substring(2)}-0`;
+  initGooglePassbackInfo() {
+    const { adserver } = this;
     let adContainer, googletag;
     try {
       if(top.checkingCrossDomain) {
@@ -273,22 +277,35 @@ class PostbidAuction extends AuctionBase
       }
     } catch(e) {}
     this.passbackRunInTop = !!(!this.forcePassbackInIframe && adContainer && googletag/* && this.location.win !== top*/);
+    return { adContainer, googletag };
+  }
+
+  initGooglePassbackUnit(onRenderTriggered, googlePassbackSettings) {
+    let { googletag } = googlePassbackSettings;
+    const { googlePassbackUnit, initWidth, initHeight, sizes, googleDimensions, adserver, hidePassbackUntilFinished } = this;
+    this.gptDivId = `div-gpt-id-${Math.random().toString().substring(2)}-0`;
     if(this.passbackRunInTop) { // re-use
+      const { adContainer } = googlePassbackSettings;
       this.gptDiv = adserver.createGptPassbackDiv(this, adContainer, {
         width: adContainer.clientWidth,
         height: adContainer.clientHeight,
       });
+      if(hidePassbackUntilFinished) {
+        this.gptDiv.style.display = 'none';
+      }
       this.resize(0, 0, true);
     } else {
       const win = this.iframe.contentWindow;
       const doc = win.document;
       const script = doc.createElement('script');
-      this.gptDiv = this.createGptDiv(top.document, null);
+      this.gptDiv = this.createGptDiv(doc, { width: '100%', height: '100%' });
       googletag = win.googletag = { cmd: [] };
       doc.body.appendChild(this.gptDiv);
       script.src = 'https://www.googletagservices.com/tag/js/gpt.js';
       doc.head.appendChild(script);
-      this.showIframe();
+      if(!hidePassbackUntilFinished) {
+        this.showIframe();
+      }
     }
     googletag.cmd.push(() => {
       //googletag.openConsole();
@@ -320,6 +337,12 @@ class PostbidAuction extends AuctionBase
   }
 
   onBidsBack(onRenderTriggered) {
+    if(!this.iframe.contentWindow) {
+      this.initIframe();
+      if(!this.iframe.contentWindow) {
+        throw Error('Iframe error');
+      }
+    }
     const ifrDoc = this.iframe.contentWindow.document;
     var params = this.pbjs.getAdserverTargetingForAdUnitCode(this.unitId);
     let width = this.initWidth;
@@ -337,10 +360,18 @@ class PostbidAuction extends AuctionBase
       onRenderTriggered({ type: 'prebid' });
     } else {
       this.log('Calling passback');
+      let googlePassbackSettings;
+      if (this.googlePassbackUnit) {
+        googlePassbackSettings = this.initGooglePassbackInfo();
+        if(this.passbackRunInTop) {
+          this.initGooglePassbackUnit(onRenderTriggered, googlePassbackSettings);
+          return; // no need to write into iframe
+        }
+      }
       ifrDoc.open('text/html', 'replace');
       this.iframe.contentWindow.passback = () => {
         if(this.googlePassbackUnit) {
-          this.initGooglePassbackUnit(onRenderTriggered);
+          this.initGooglePassbackUnit(onRenderTriggered, googlePassbackSettings);
         } else if (this.legacyPassbackHtml) {
           this.showIframe();
           ifrDoc.write(eval("'" + (this.legacyPassbackHtml || '') + "'"));

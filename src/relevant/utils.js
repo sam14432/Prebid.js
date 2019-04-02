@@ -66,7 +66,7 @@ const setSize = (elm, width, height, useDisplayNone) => {
   }
 };
 
-const createIframe = (location, width, height, hidden) => {
+const createIframe = (location, width, height, extraAttribs, extraStyle) => {
   let { win, insertAfter, appendTo } = location || {};
   if (!win) {
     throw Error('location.win not defined');
@@ -86,7 +86,7 @@ const createIframe = (location, width, height, hidden) => {
   }
 
   var iframe = doc.createElement('iframe');
-  const attribs = {
+  const attribs = Object.assign({
     FRAMEBORDER: 0,
     SCROLLING: 'no',
     MARGINHEIGHT: 0,
@@ -98,13 +98,11 @@ const createIframe = (location, width, height, hidden) => {
     ALLOW: 'autoplay',
     width: width,
     height: height,
-  };
+  }, extraAttribs);
   for (const [key, value] of Object.entries(attribs)) {
     iframe.setAttribute(key, value);
   }
-  if (hidden) {
-    iframe.style.display = 'none';
-  }
+  Object.assign(iframe.style, extraStyle);
   insertAfter = asElm(win, insertAfter);
   appendTo = asElm(win, appendTo);
   if (insertAfter) {

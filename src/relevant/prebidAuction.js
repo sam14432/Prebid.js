@@ -1,8 +1,8 @@
 /* eslint-disable */
 import find from 'core-js/library/fn/array/find';
 import AuctionBase from './auctionBase';
-import { DEFAULT_GOOGLE_PATH_PREPEND } from './constants';
 import { isFunction } from './utils';
+import { MAX_PASSBACK_GROUP_DELAY, DEFAULT_GOOGLE_PATH_PREPEND } from './constants';
 
 const DEFAULT = {
   failsafeTimeout: 1000,
@@ -16,6 +16,7 @@ const PREBID_COPY_VARS = [
   'adserverType',
   'forcePassbackInIframe',
   'useIframeResizer',
+  'hidePassbackUntilFinished',
 ];
 
 class PrebidAuction extends AuctionBase
@@ -23,6 +24,7 @@ class PrebidAuction extends AuctionBase
   constructor(worker, params) {
     super(worker, params, DEFAULT);
     this.unitsByCode = {};
+    this.maxPassbackGroupDelay = this.maxPassbackGroupDelay || MAX_PASSBACK_GROUP_DELAY;
     let filterFn = () => true;
     const { allowedAdUnits } = this;
     if(allowedAdUnits) {
@@ -149,7 +151,7 @@ class PrebidAuction extends AuctionBase
     this.worker.push({
       cmd: 'postbid',
       param: newParams,
-      groupMaxDelay: calledFromPostbid ? 0 : undefined, // if called-from-postbid => we have already had delay, else undefined => use delay
+      groupMaxDelay: this.maxPassbackGroupDelay,
     });
     return true;
   }

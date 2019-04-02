@@ -7,7 +7,6 @@ import PrebidAuction from './prebidAuction';
 import SmartAdserver from './smartAdserver';
 import DfpAdserver from './dfpAdserver';
 import { isFunction } from './utils';
-import { MAX_PASSBACK_GROUP_DELAY } from './constants';
 
 const hasDebugOption = opt => ~location.toString().indexOf(opt) || ~document.cookie.indexOf(opt);
 
@@ -35,7 +34,6 @@ class RelevantWorker
     } catch(e) {
       this.pageConfig = {};
     }
-    this.maxPassbackGroupDelay = this.pageConfig.maxPassbackGroupDelay || MAX_PASSBACK_GROUP_DELAY;
   }
 
   init() {
@@ -163,15 +161,11 @@ class RelevantWorker
   push(param) {
     //RelevantWorker.log(`log: ${param.cmd} - ${param.param.logIdentifier}`);
     let { groupMaxDelay } = param;
-    if(groupMaxDelay === undefined) {
-      if (param.cmd === 'postbid') {
-        groupMaxDelay = this.maxPassbackGroupDelay;
-      }
-    }
-    this.queue.push(param);
     if (!groupMaxDelay) {
-      this.flushQueue();
+      this.runCmd(param);
+      this.runPendingAuctions();
     } else {
+      this.queue.push(param);
       const newDelayEnd = new Date() + groupMaxDelay;
       if(!this.delayEnd || newDelayEnd < this.delayEnd) {
         this.delayEnd = newDelayEnd;
