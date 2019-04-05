@@ -13,7 +13,7 @@ const DEFAULT = {
 class AuctionBase
 {
   constructor(worker, params, defaultValues) {
-    let pageConfig = { worker };
+    let { pageConfig } = worker;
     Object.assign(this, DEFAULT, defaultValues, pageConfig || {}, params, {
       worker,
       pbjs: worker.pbjs,

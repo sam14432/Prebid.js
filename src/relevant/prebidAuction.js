@@ -17,6 +17,7 @@ const PREBID_COPY_VARS = [
   'forcePassbackInIframe',
   'useIframeResizer',
   'hidePassbackUntilFinished',
+  'googleCollapseEmptyDivStyle',
 ];
 
 class PrebidAuction extends AuctionBase

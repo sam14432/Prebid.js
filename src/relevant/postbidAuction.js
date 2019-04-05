@@ -30,6 +30,7 @@ const DEFAULT = {
   minWidth: 0,
   forcePassbackInIframe: false,
   adserverType: 'dfp',
+  googleCollapseEmptyDivStyle: 'full', // 'full', 'post', else none
 };
 
 class PostbidAuction extends AuctionBase
@@ -117,7 +118,12 @@ class PostbidAuction extends AuctionBase
     withGptPassback.forEach(({ auction, result }) => {
       const { googletag } = result;
       if (!(auction.adserver instanceof DfpAdserver) && !googletag.pubadsReady && initializedGoogleTags.indexOf(googletag) < 0) {
-        googletag.pubads().collapseEmptyDivs(true);
+        const collapseStyle = auction.googleCollapseEmptyDivStyle;
+        if (collapseStyle === 'full') {
+          googletag.pubads().collapseEmptyDivs(true);
+        } else if(collapseStyle === 'post') {
+          googletag.pubads().collapseEmptyDivs();
+        }
         googletag.pubads().enableSingleRequest();
         googletag.enableServices();
         initializedGoogleTags.push(googletag);
