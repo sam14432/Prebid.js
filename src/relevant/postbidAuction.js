@@ -129,7 +129,7 @@ class PostbidAuction extends AuctionBase
         initializedGoogleTags.push(googletag);
       }
       auction.log('calling googletag.display()');
-      googletag.display(auction.gptDivId);
+      googletag.display(auction.gptDiv.children[0]);
     });
   }
 
@@ -214,6 +214,30 @@ class PostbidAuction extends AuctionBase
     this.event('onAdResponse', Object.assign({ width, height }, responseParams));
   }
 
+  /** All of this is because of some stupid AdX bug that might return too-large ads */
+  prepareGoogleDimensions(ev) {
+    const [ width, height ] = ev.size;
+    const dims = this.googleDimensions || this.sizes;
+    let maxAllowedWidth = 0;
+    dims.forEach(([width]) => {
+      maxAllowedWidth = Math.max(maxAllowedWidth, width);
+    });
+    if(width <= maxAllowedWidth) {
+      return { width, height };
+    }
+    const scale = maxAllowedWidth / width;
+    Object.assign(this.gptDiv.style, {
+      transformOrigin: 'left top',
+      transform: `scale(${scale})`,
+    });
+    const res = {
+      width: maxAllowedWidth,
+      height: Math.round(scale * height),
+    };
+    this.log(`Rescaling invalid dimensions ${width}x${height} to ${res.width}x${res.height}`);
+    return res;
+  }
+
   onGooglePassbackRendered(ev) {
     if(ev.slot.getSlotElementId() !== this.gptDivId) {
       return;
@@ -222,12 +246,14 @@ class PostbidAuction extends AuctionBase
       this.onPassbackEmpty({ type: 'google', googleParams: ev });
       return;
     }
-    const [width, height] = ev.size;
+
     const ifr = this.gptDiv.getElementsByTagName("iframe")[0];
     if(!ifr) {
       this.log("Failed to find passback iframe");
       return;
     }
+
+    let { width, height } = this.prepareGoogleDimensions(ev);
 
     // Check Smart passback
     if(isIframeAccessible(ifr) && ifr.contentWindow.sas && ifr.contentWindow.sas.cmd) {
@@ -317,10 +343,14 @@ class PostbidAuction extends AuctionBase
       const doc = win.document;
       const script = doc.createElement('script');
       this.gptDiv = this.createGptDiv(doc, { width: '100%', height: '100%' });
-      googletag = win.googletag = { cmd: [] };
       doc.body.appendChild(this.gptDiv);
-      script.src = 'https://www.googletagservices.com/tag/js/gpt.js';
-      doc.head.appendChild(script);
+      if (top.googletag) {
+        googletag = top.googletag;
+      } else {
+        googletag = win.googletag = {cmd: []};
+        script.src = 'https://www.googletagservices.com/tag/js/gpt.js';
+        doc.head.appendChild(script);
+      }
       if(!hidePassbackUntilFinished) {
         this.showIframe();
       }

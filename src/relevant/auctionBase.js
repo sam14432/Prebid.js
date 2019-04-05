@@ -14,7 +14,14 @@ class AuctionBase
 {
   constructor(worker, params, defaultValues) {
     let { pageConfig } = worker;
-    Object.assign(this, DEFAULT, defaultValues, pageConfig || {}, params, {
+    const allDefaults = Object.assign({}, DEFAULT, defaultValues);
+    const fromPageConfig = {};
+    for(const key in pageConfig) {
+      if(key in allDefaults) {
+        fromPageConfig[key] = pageConfig[key];
+      }
+    }
+    Object.assign(this, allDefaults, fromPageConfig, params, {
       worker,
       pbjs: worker.pbjs,
     });

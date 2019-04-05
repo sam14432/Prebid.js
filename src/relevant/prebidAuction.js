@@ -156,14 +156,6 @@ class PrebidAuction extends AuctionBase
     return true;
   }
 
-  addWinningBid(code, bid) {
-    this.winningBidsByCode[code] = bid;
-  }
-
-  getWinningBid(code) {
-    return this.winningBids[code];
-  }
-
 }
 
 export default PrebidAuction;
