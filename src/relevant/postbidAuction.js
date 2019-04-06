@@ -4,7 +4,7 @@ import WinSizeCalculator from './winSizeCalculator';
 import DfpAdserver from './dfpAdserver';
 import Hacks from './hacks';
 import AuctionBase from './auctionBase';
-import { setSize, createIframe, isIframeAccessible, asElm } from './utils';
+import { setSize, createIframe, isIframeAccessible, isWindowAccessible ,asElm } from './utils';
 
 const PASSBACK_HTML = `
   <!DOCTYPE html>
@@ -344,7 +344,7 @@ class PostbidAuction extends AuctionBase
       const script = doc.createElement('script');
       this.gptDiv = this.createGptDiv(doc, { width: '100%', height: '100%' });
       doc.body.appendChild(this.gptDiv);
-      if (top.googletag) {
+      if (isWindowAccessible(top) && top.googletag) {
         googletag = top.googletag;
       } else {
         googletag = win.googletag = {cmd: []};
