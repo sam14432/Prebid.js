@@ -50,10 +50,19 @@ const toPostParam = (param) => {
   return newParam;
 };
 
+const DEFAULTS = {
+  injectSmartCalls: true,
+  sasOnlyUseRendered: false,
+};
+
 class SmartAdserver extends AdserverBase {
   constructor() {
     super();
     this.calledFormats = [];
+  }
+
+  getAdserverDefaults() {
+    return DEFAULTS;
   }
 
   createGptPassbackDiv(auction, adContainer, dimensions) {

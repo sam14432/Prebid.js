@@ -12,6 +12,10 @@ class AdserverBase {
 
   getPbjsConfig() { return null; }
 
+  getAdserverDefaults() {
+    return {};
+  }
+
   initPrebidAuction() {
     throw Error('Prebid not implemented for adserver');
   }

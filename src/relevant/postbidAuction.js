@@ -376,8 +376,8 @@ class PostbidAuction extends AuctionBase
           setSize(childIframe, width, height);
         }
       },
-      checkIvl: this.sizeCheckIvl || 500,
-      duration: this.sizeCheckDuration || 5000,
+      checkIvl: this.sizeCheckIvl,
+      duration: this.sizeCheckDuration,
       lastWidth: this.currentAd.width,
       lastHeight: this.currentAd.height,
     });

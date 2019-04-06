@@ -46,13 +46,13 @@ We can then replace that with the following:
 <script>
 (function() {
     var pbScript = document.createElement('script');
-   	pbScript.onload = function() { // load smart.js *after* prebid config
+    pbScript.onload = function() { // load smart.js *after* prebid config
         var smartScript = document.createElement('script');
         smartScript.src = '//ced.sascdn.com/tag/2545/smart.js';
         document.head.appendChild(smartScript);
-   	};
-   	pbScript.setAttribute('data-relevant-sync-init-prebid', '');
-   	pbScript.src = '//apps-cdn.relevant-digital.com/static/tags/[PREBID_CONFIG].js';   	
+    };
+    pbScript.setAttribute('data-relevant-sync-init-prebid', '');
+    pbScript.src = '//apps-cdn.relevant-digital.com/static/tags/[PREBID_CONFIG].js';   	
     document.head.appendChild(pbScript);
 })();
 </script>
@@ -82,14 +82,14 @@ We can manually include the "stub" code in the prebid configuration JavaScript a
 	};
 
 	/** How long time to wait *without* getting the onInitPrebidDone() callback above
-     * until we skip prebid and calls Smart without prebid */
+	 * until we skip prebid and calls Smart without prebid */
 	var TIMEOUT_MS = 1000;
 
 	/** Overwrites sas.cmd.push with relevantSasCmd - in case that change has not
 	 * been done everywhere */
 	var INJECT_SMART_CMD = true;
 
-    // Smart cmds that are queued until prebid is initialized *or* until we've timed out
+	// Smart cmds that are queued until prebid is initialized *or* until we've timed out
 	var pendingSasOps = [];
 	
 	// Will be set to true by the onInitPrebidDone() callback above
@@ -181,7 +181,7 @@ We only want to bid on formats that is actually rendered during the page view. A
 ```html
 <script>
     RELEVANT_PROGRAMMATIC_CONFIG = {
-	    delayStartPrebid: false,
+    	delayStartPrebid: false,
     	sasOnlyUseRendered: false,
     };
 </script>
@@ -197,7 +197,7 @@ In the following example we use the **allowedAdUnits** field to specify which fo
 ```html
 <script>
     RELEVANT_PROGRAMMATIC_CONFIG = {
-	    delayStartPrebid: false,
+    	delayStartPrebid: false,
     	sasOnlyUseRendered: false,
         allowedAdUnits: matchMedia("(min-width: 768px)") ?
         	['sas_1234', 'sas_4321', 'sas_3214', 'sas_4141'] // "desktop" formats
@@ -207,9 +207,42 @@ In the following example we use the **allowedAdUnits** field to specify which fo
 <script data-relevant-sync-init-prebid src="//apps-cdn.relevant-digital.com/static/tags/[PREBID_CONFIG].js"></script>
 ```
 
-Optionally **allowedAdUnits** can instead be a function that will receive a Prebid ad unit (<http://prebid.org/dev-docs/adunit-reference.html>) and then return whether the ad unit (format) should be used. The **code** field in the parameter to the function will be the tag name (for example 'sas_12345').
+Optionally **allowedAdUnits** can instead be a *function* that will receive a Prebid ad unit (<http://prebid.org/dev-docs/adunit-reference.html>) and then return whether the ad unit (format) should be used. The **code** field in the parameter to the function will be the tag name (for example 'sas_12345').
 
+#### Configuration parameter reference
 
+This section lists the available fields of the **RELEVANT_PROGRAMMATIC_CONFIG** object. These are either *Settings* or *Callback functions*.
+
+##### Settings
+
+| Name                        | Description                                                  |
+| --------------------------- | ------------------------------------------------------------ |
+| forcePassbackInIframe       | Insert Google AdX inside an extra iframe. This might of unknown reasons increase Active View % somewhat which may increase revenue. |
+| useIframeResizer            | For Google AdX and passbacks, repeatedly check size of content in iframe and resize it accordingly. |
+| sizeCheckIvl                | When **useIframeResizer = true**. How many milliseconds between each size check. |
+| sizeCheckDuration           | When **useIframeResizer = true**. Total duration for how many milliseconds the checks should be done. |
+| hidePassbackUntilFinished   | Hide Google Adx and possible passback until rendering has finished and and an ad was displayed (otherwise stay hidden). |
+| googleCollapseEmptyDivStyle | For Google Adx, defines how to call googletag.pubads().collapseEmptyDivs(true):<br /><br />'**full**' - collapse div until an ad is returned.<br />**'post'** - collapse div *after* the response is empty (no ad)<br />**(any other value)** - don't use collapseEmptyDivs() |
+| failsafeTimeout             | How long time after initialization until we should go on with the ad requests even though we didn't get bids back. Notice that there is still a chance that header bidding winners will be shown if bids are returned before the ad-request is finished (but they won't compete with RTB+ / direct campaigns). |
+| delayStartPrebid            | Don't start header bidding as soon as possible. The purpose is to use some automatic method to pick up which ad-units that should be part of the header bidding (which ones that are on the page). For Smart **sas.call()** is used to or **sas.render()**, in case **sasOnlyUseRendered** is true. |
+| pbjsConfig                  | The Prebid.js configuration object. These settings will be merged with the default Prebid.js config used Relevant. |
+| injectSmartCalls            | Intercept Smart JS calls. Set to *false* if you're integrating using **Method 4** above. |
+| sasOnlyUseRendered          | Pick up which ad-units to create auctions for based upon which formats that are rendered using **sas.render()**. |
+|                             |                                                              |
+|                             |                                                              |
+| onInitPostbid               |                                                              |
+| onInitPrebid                |                                                              |
+| onInitPrebidDone            |                                                              |
+
+##### Callback function
+
+| Name                     | Description                                                  |
+| ------------------------ | ------------------------------------------------------------ |
+| onAdResponse(params)     | Callback when an ad has been rendered. If *no ad* was returned, then **params.noAd** = true |
+| onAdDimensions(params)   |                                                              |
+| onInitPostbid(params)    |                                                              |
+| onInitPrebid(params)     |                                                              |
+| onInitPrebidDone(params) |                                                              |
 
 
 

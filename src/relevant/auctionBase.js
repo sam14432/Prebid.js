@@ -8,24 +8,27 @@ const DEFAULT = {
   logIdentifier: null,
   adserverType: 'dfp',
   pbjsConfig: null,
+  useIframeResizer: false,
+  sizeCheckIvl: 500,
+  sizeCheckDuration: 5000,
 };
 
 class AuctionBase
 {
   constructor(worker, params, defaultValues) {
     let { pageConfig } = worker;
-    const allDefaults = Object.assign({}, DEFAULT, defaultValues);
+    this.adserver = worker.getAdserver(params.adserverType);
+    const allDefaults = Object.assign({}, DEFAULT, defaultValues, this.adserver.getAdserverDefaults());
     const fromPageConfig = {};
     for(const key in pageConfig) {
       if(key in allDefaults) {
         fromPageConfig[key] = pageConfig[key];
       }
     }
-    Object.assign(this, allDefaults, fromPageConfig, params, {
+    Object.assign(this, allDefaults, params, fromPageConfig, params.pageOverrideParams, {
       worker,
       pbjs: worker.pbjs,
     });
-    this.adserver = worker.getAdserver(this.adserverType);
   }
 
   auctionType() { return 'unknown'; }
