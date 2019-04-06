@@ -228,11 +228,6 @@ This section lists the available fields of the **RELEVANT_PROGRAMMATIC_CONFIG** 
 | pbjsConfig                  | The Prebid.js configuration object. These settings will be merged with the default Prebid.js config used Relevant. |
 | injectSmartCalls            | Intercept Smart JS calls. Set to *false* if you're integrating using **Method 4** above. |
 | sasOnlyUseRendered          | Pick up which ad-units to create auctions for based upon which formats that are rendered using **sas.render()**. |
-|                             |                                                              |
-|                             |                                                              |
-| onInitPostbid               |                                                              |
-| onInitPrebid                |                                                              |
-| onInitPrebidDone            |                                                              |
 
 ##### Callback function
 
