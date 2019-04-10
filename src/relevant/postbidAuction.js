@@ -29,6 +29,7 @@ const DEFAULT = {
   minHeight: 0,
   minWidth: 0,
   forcePassbackInIframe: false,
+  forceGptInIframe: false,
   adserverType: 'dfp',
   googleCollapseEmptyDivStyle: 'full', // 'full', 'post', else none
 };
@@ -346,7 +347,7 @@ class PostbidAuction extends AuctionBase
       const script = doc.createElement('script');
       this.gptDiv = this.createGptDiv(doc, { width: '100%', height: '100%' });
       doc.body.appendChild(this.gptDiv);
-      if (isWindowAccessible(top) && top.googletag) {
+      if (isWindowAccessible(top) && top.googletag && !this.forceGptInIframe) {
         googletag = top.googletag;
       } else {
         googletag = win.googletag = {cmd: []};
