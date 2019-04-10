@@ -124,7 +124,9 @@ class PostbidAuction extends AuctionBase
         } else if(collapseStyle === 'post') {
           googletag.pubads().collapseEmptyDivs();
         }
-        googletag.pubads().enableSingleRequest();
+        if(auction.passbackRunInTop) {
+          googletag.pubads().enableSingleRequest();
+        }
         googletag.enableServices();
         initializedGoogleTags.push(googletag);
       }
