@@ -30,6 +30,7 @@ const DEFAULT = {
   minWidth: 0,
   forcePassbackInIframe: false,
   forceGptInIframe: false,
+  disableGptSingleRequest: false,
   adserverType: 'dfp',
   googleCollapseEmptyDivStyle: 'full', // 'full', 'post', else none
 };
@@ -125,7 +126,7 @@ class PostbidAuction extends AuctionBase
         } else if(collapseStyle === 'post') {
           googletag.pubads().collapseEmptyDivs();
         }
-        if(auction.passbackRunInTop) {
+        if(!auction.forceGptInIframe && !auction.disableGptSingleRequest) {
           googletag.pubads().enableSingleRequest();
         }
         googletag.enableServices();
