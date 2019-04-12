@@ -97,6 +97,12 @@ class PrebidAuction extends AuctionBase
     setTimeout(() => this.sendAdserverRequest(true), this.failsafeTimeout);
   }
 
+  hasPrebidAd(code) {
+    const { pbjs } = this.worker;
+    var params = pbjs.getAdserverTargetingForAdUnitCode(code);
+    return !!(params && params.hb_adid);
+  }
+
   renderUsingParams(param, calledFromPostbid) {
     if(calledFromPostbid && this.worker.getAdserver(param.adserverType) !== this.adserver) {
       return false;
@@ -124,6 +130,7 @@ class PrebidAuction extends AuctionBase
       sizes: getSizes(),
       hacks: this.hacks,
       unitId: code,
+      existingLegacyIframe: param.existingLegacyIframe,
     };
     PREBID_COPY_VARS.forEach((varName) => {
       if(varName in this) {

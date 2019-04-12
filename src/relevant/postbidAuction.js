@@ -31,6 +31,7 @@ const DEFAULT = {
   forcePassbackInIframe: false,
   forceGptInIframe: false,
   disableGptSingleRequest: false,
+  existingLegacyIframe: null,
   adserverType: 'dfp',
   googleCollapseEmptyDivStyle: 'full', // 'full', 'post', else none
 };
@@ -48,6 +49,9 @@ class PostbidAuction extends AuctionBase
     }
     if (!this.unitId) {
       this.unitId = `unit_${Math.random().toString().substring(2)}`;
+    }
+    if(this.existingLegacyIframe) {
+      this.iframe = this.existingLegacyIframe;
     }
   }
 
@@ -100,7 +104,9 @@ class PostbidAuction extends AuctionBase
     super.init();
     this.event('onInitPostbid');
     this.adserver.initPostbidAuction(this);
-    this.initIframe();
+    if(!this.iframe) {
+      this.initIframe();
+    }
   }
 
   getPrebidElement() {

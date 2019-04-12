@@ -4,6 +4,14 @@ Integrating **Prebid.js** for pre-bidding on a site with **Smart** and **Relevan
 
 The implementation is a *fork* of Prebid.js and is compatible with our **Postbid** template. This means you can enable/disable pre-bidding "at will" on the site without having to worry about existing postbid insertions in Smart. When pre-bidding is enabled and a postbid insertion is selected - then the effect is the same as "no ad". That means that no Smart RTB+ / direct campaign could out-compete the header bidding winner so that the header bidding winner (or Google AdX) will be chosen instead.
 
+#### Optimization - preload the libary
+
+It is normally desirable to pre-load the library used by your prebid configuration file. The following line should be put in <head> of the page in order to load it from our default location which is used by the prebid configuration.
+
+```html
+<link rel="preload" href="//cdn.relevant-digital.com/client-lib/v2/relevant-client-lib.js" as="script">
+```
+
 ## Method 1 - one-line integration
 
 Include the following line in of your page. Make sure it is included *before* either the loading of **smart.js** *or* the first call so **sas.cmd.push()**
@@ -223,11 +231,15 @@ This section lists the available fields of the **RELEVANT_PROGRAMMATIC_CONFIG** 
 | sizeCheckDuration           | When **useIframeResizer = true**. Total duration for how many milliseconds the checks should be done. |
 | hidePassbackUntilFinished   | Hide Google Adx and possible passback until rendering has finished and and an ad was displayed (otherwise stay hidden). |
 | googleCollapseEmptyDivStyle | For Google Adx, defines how to call googletag.pubads().collapseEmptyDivs(true):<br /><br />'**full**' - collapse div until an ad is returned.<br />**'post'** - collapse div *after* the response is empty (no ad)<br />**(any other value)** - don't use collapseEmptyDivs() |
+| forceGptInIframe            | When **forcePassbackInIframe = true**, this will load a separate Google Publisher Tag (gpt.js) into each iframe. |
+| disableGptSingleRequest     | Disable single request mode for Google Ad Manager. Notice that when **forceGptInIframe = true**, single request mode will always be disabled. |
 | failsafeTimeout             | How long time after initialization until we should go on with the ad requests even though we didn't get bids back. Notice that there is still a chance that header bidding winners will be shown if bids are returned before the ad-request is finished (but they won't compete with RTB+ / direct campaigns). |
 | delayStartPrebid            | Don't start header bidding as soon as possible. The purpose is to use some automatic method to pick up which ad-units that should be part of the header bidding (which ones that are on the page). For Smart **sas.call()** is used to or **sas.render()**, in case **sasOnlyUseRendered** is true. |
 | pbjsConfig                  | The Prebid.js configuration object. These settings will be merged with the default Prebid.js config used Relevant. |
 | injectSmartCalls            | Intercept Smart JS calls. Set to *false* if you're integrating using **Method 4** above. |
 | sasOnlyUseRendered          | Pick up which ad-units to create auctions for based upon which formats that are rendered using **sas.render()**. |
+| waitInitPrebidMs            | Only used with **Method** **1** and **2**. This corresponds to **TIMEOUT_MS** in **Method 3**. |
+| injectSmartCmd              | Only used with **Method** **1** and **2**. This corresponds to **INJECT_SMART_CMD** in **Method 3**. |
 
 ##### Callback function
 
