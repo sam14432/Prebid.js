@@ -6,7 +6,7 @@ The implementation is a *fork* of Prebid.js and is compatible with our **Postbid
 
 #### Optimization - preload the libary
 
-It is normally desirable to pre-load the library used by your prebid configuration file. The following line should be put in <head> of the page in order to load it from our default location which is used by the prebid configuration.
+It is normally desirable to pre-load the library used by your prebid configuration file. The following line should be put into the head of the page in order to load it from our default location which is used by the prebid configuration.
 
 ```html
 <link rel="preload" href="//cdn.relevant-digital.com/client-lib/v2/relevant-client-lib.js" as="script">
