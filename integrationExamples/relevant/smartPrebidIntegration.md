@@ -225,6 +225,7 @@ This section lists the available fields of the **RELEVANT_PROGRAMMATIC_CONFIG** 
 
 | Name                        | Description                                                  |
 | --------------------------- | ------------------------------------------------------------ |
+| allowedAdUnits              | Which ad units to use for header bidding, please see the previous section. |
 | forcePassbackInIframe       | Insert Google AdX inside an extra iframe. This might of unknown reasons increase Active View % somewhat which may increase revenue. |
 | useIframeResizer            | For Google AdX and passbacks, repeatedly check size of content in iframe and resize it accordingly. |
 | sizeCheckIvl                | When **useIframeResizer = true**. How many milliseconds between each size check. |
