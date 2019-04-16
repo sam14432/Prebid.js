@@ -99,8 +99,8 @@ const createIframe = (location, width, height, extraAttribs, extraStyle) => {
     width: width,
     height: height,
   }, extraAttribs);
-  for (const [key, value] of Object.entries(attribs)) {
-    iframe.setAttribute(key, value);
+  for (const key in attribs) {
+    iframe.setAttribute(key, attribs[key]);
   }
   Object.assign(iframe.style, extraStyle);
   insertAfter = asElm(win, insertAfter);
