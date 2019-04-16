@@ -79,16 +79,19 @@ class WinSizeCalculator
     if (this.stopped) {
       return;
     }
-    const { width, height, ifr } = this.getDimensions();
+    let { width, height, ifr } = this.getDimensions();
     if (isNaN(width) || isNaN(height)) {
       utils.logWarn(`Failed getting dimensions width(${width}) height(${height})`);
     } else {
+      if(height === this.lastHeight + 4) {
+        height = this.lastHeight; // probably mysterious extra 4px height of smart-passbacks that I currenctly don't understand..
+      }
       if(width !== this.lastWidth || height !== this.lastHeight || ifr !== this.lastIfr) {
         this.onDimensions(width, height, ifr);
+        this.lastWidth = width;
+        this.lastHeight = height;
+        this.lastIfr = ifr;
       }
-      this.lastWidth = width;
-      this.lastHeight = height;
-      this.lastIfr = ifr;
     }
     if (--this.checksLeft > 0) {
       setTimeout(this.reCheckFn, this.checkIvl);

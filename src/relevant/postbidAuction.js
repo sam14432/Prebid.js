@@ -199,7 +199,7 @@ class PostbidAuction extends AuctionBase
     this.event('onAdResponse', Object.assign({ noAd: true, width: 0, height: 0 }, responseParams));
   }
 
-  onPassbackHasAd(responseParams, ifr, width, height) {
+  onPassbackHasAd(responseParams, ifr, width, height, useIframeResizerIfSet) {
     setSize(this.gptDiv, 'auto', 'auto');
     if(this.passbackRunInTop) {
       if(this.hidePassbackUntilFinished) {
@@ -218,10 +218,10 @@ class PostbidAuction extends AuctionBase
       }
       this.resize(width, height);
     }
-    if (this.useIframeResizer) {
+    this.event('onAdResponse', Object.assign({ width, height }, responseParams));
+    if (useIframeResizerIfSet && this.useIframeResizer) {
       this.startResizer(ifr);
     }
-    this.event('onAdResponse', Object.assign({ width, height }, responseParams));
   }
 
   /** All of this is because of some stupid AdX bug that might return too-large ads */
@@ -275,7 +275,7 @@ class PostbidAuction extends AuctionBase
       };
       const onLoad = () => {
         if(!noad) {
-          this.onPassbackHasAd({ type: 'smart', googleParams: ev }, ifr, width, height);
+          this.onPassbackHasAd({ type: 'smart', googleParams: ev }, ifr, width, height, true);
         }
       }
       sas.cmd.push(() => {
@@ -290,7 +290,7 @@ class PostbidAuction extends AuctionBase
         });
       });
     } else {
-      this.onPassbackHasAd({ type: 'google', googleParams: ev }, ifr, width, height);
+      this.onPassbackHasAd({ type: 'google', googleParams: ev }, ifr, width, height, false);
     }
   }
 

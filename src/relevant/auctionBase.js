@@ -8,7 +8,7 @@ const DEFAULT = {
   logIdentifier: null,
   adserverType: 'dfp',
   pbjsConfig: null,
-  useIframeResizer: false,
+  useIframeResizer: true,
   sizeCheckIvl: 500,
   sizeCheckDuration: 5000,
 };
