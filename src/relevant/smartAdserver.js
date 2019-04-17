@@ -65,6 +65,10 @@ class SmartAdserver extends AdserverBase {
     return DEFAULTS;
   }
 
+  getDefaultAdUnitId(auction) {
+    return this.getAdUnitCodeFromParams(auction, auction);
+  }
+
   createGptPassbackDiv(auction, adContainer, dimensions) {
     const gptDiv = auction.createGptDiv(top.document, { width: '100%', height: '100%' }); // ignore dimensions, start collapsed
     adContainer.appendChild(gptDiv);

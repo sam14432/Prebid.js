@@ -47,11 +47,11 @@ class PostbidAuction extends AuctionBase
     if(!this.initWidth || !this.initHeight) {
       throw Error('sizes invalid');
     }
-    if (!this.unitId) {
-      this.unitId = `unit_${Math.random().toString().substring(2)}`;
-    }
     if(this.existingLegacyIframe) {
       this.iframe = this.existingLegacyIframe;
+    }
+    if (!this.unitId) {
+      this.unitId = this.adserver.getDefaultAdUnitId(this) || `unit_${Math.random().toString().substring(2)}`;
     }
   }
 

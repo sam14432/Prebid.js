@@ -16,6 +16,10 @@ class AdserverBase {
     return {};
   }
 
+  getDefaultAdUnitId() {
+    return null;
+  }
+
   initPrebidAuction() {
     throw Error('Prebid not implemented for adserver');
   }
