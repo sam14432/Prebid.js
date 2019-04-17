@@ -69,7 +69,16 @@ class PostbidAuction extends AuctionBase
     }
     setSize(this.iframe, width, height, true);
     try { /** Check if there is a parent-iframe we should try to resize */
-      const { frameElement } = this.location.win;
+      let { frameElement } = this.location.win;
+      if(!frameElement && this.existingLegacyIframe) { // old postbid template fix/hack
+        const parentDoc = this.existingLegacyIframe.ownerDocument;
+        if(parentDoc) {
+          const parentWin = parentDoc.defaultView || parentDoc.parentWindow;
+          if(parentWin && parentWin.frameElement) {
+            frameElement = parentWin.frameElement;
+          }
+        }
+      }
       if (frameElement) {
         setSize(frameElement, width, height, true)
       }
