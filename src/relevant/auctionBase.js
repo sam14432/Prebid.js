@@ -65,7 +65,10 @@ class AuctionBase
         debug: this.worker.prebidDebug,
         rubicon: {
           singleRequest: true,
-        }
+        },
+        improvedigital: {
+          singleRequest: true,
+        },
       }
       const cfg = mergeNonExisting({}, this.pbjsConfig, this.adserver.getPbjsConfig(), PREBID_DEFAULT_CONFIG);
       this.pbjs.setConfig(cfg);
