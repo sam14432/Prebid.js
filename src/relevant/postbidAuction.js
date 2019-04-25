@@ -106,7 +106,7 @@ class PostbidAuction extends AuctionBase
   }
 
   initIframe() {
-    this.iframe = createIframe(this.location, this.initWidth, this.initHeight, { id: this.iframeId }, { display: 'none' });
+    this.iframe = createIframe(this.location, this.initWidth, this.initHeight, this.iframeId ? { id: this.iframeId } : null, { display: 'none' });
   }
 
   init() {
@@ -389,6 +389,9 @@ class PostbidAuction extends AuctionBase
     const szCalc = new WinSizeCalculator({
       win: (childIframe || this.iframe).contentWindow,
       onDimensions: (width, height, ifr) => {
+        if ((this.iframe.style || {}).position === 'absolute') {
+          return; // Special case for Smart Default banner passbacks that moves out of iframe, let's just skip this
+        }
         this.resize(width, height);
         this.event('onAdDimensionsChanged', { width, height });
         if(childIframe && ifr === childIframe) {
