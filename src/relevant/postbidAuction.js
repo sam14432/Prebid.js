@@ -282,17 +282,17 @@ class PostbidAuction extends AuctionBase
         noad = true;
         this.onPassbackEmpty({ type: 'smart', googleParams: ev }, ifr);
       };
-      const onLoad = () => {
+      const onLoad = (data) => {
         if(!noad) {
-          this.onPassbackHasAd({ type: 'smart', googleParams: ev }, ifr, width, height, true);
+          this.onPassbackHasAd({ type: 'smart', googleParams: ev, smartParams: data }, ifr, width, height, true);
         }
       }
       sas.cmd.push(() => {
         sas.events.on('noad', onNoad);
         sas.events.on('load', onLoad);
-        sas.events.history().forEach(({ eventName }) => {
+        sas.events.history().forEach(({ eventName, data }) => {
           if(eventName === 'load') {
-            onLoad();
+            onLoad(data);
           } else if(eventName === 'noad') {
             onNoad();
           }
