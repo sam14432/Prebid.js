@@ -34,6 +34,7 @@ const DEFAULT = {
   existingLegacyIframe: null,
   adserverType: 'dfp',
   googleCollapseEmptyDivStyle: 'full', // 'full', 'post', else none
+  trickSasPassbackIntoIframe: false,
 };
 
 class PostbidAuction extends AuctionBase
@@ -277,6 +278,9 @@ class PostbidAuction extends AuctionBase
     // Check Smart passback
     if(isIframeAccessible(ifr) && ifr.contentWindow.sas && ifr.contentWindow.sas.cmd) {
       const { sas } = ifr.contentWindow;
+      if(this.trickSasPassbackIntoIframe) {
+        ifr.contentWindow.inDapIF = false;
+      }
       let noad = false;
       const onNoad = () => {
         noad = true;
