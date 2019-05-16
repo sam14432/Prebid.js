@@ -1,4 +1,8 @@
 class AdserverBase {
+  constructor(worker) {
+    this.worker = worker;
+  }
+
   initPostbidAuction(auction) {
     (auction.containers || []).forEach((elm) => {
       if (auction.minWidth) {

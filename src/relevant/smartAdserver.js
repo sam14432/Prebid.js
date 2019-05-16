@@ -1,4 +1,5 @@
 import AdserverBase from './adserverBase';
+import SmartSkipper from './smartSkipper';
 import { injectCall } from './utils';
 
 const isAdUnitCode = (str) => {
@@ -53,11 +54,12 @@ const toPostParam = (param) => {
 const DEFAULTS = {
   injectSmartCalls: true,
   sasOnlyUseRendered: false,
+  skipSmartAdserver: false,
 };
 
 class SmartAdserver extends AdserverBase {
-  constructor() {
-    super();
+  constructor(worker) {
+    super(worker);
     this.calledFormats = [];
   }
 
@@ -120,33 +122,51 @@ class SmartAdserver extends AdserverBase {
     return newOptions;
   }
 
-  injectSmartCall(auction) {
+  injectSmartCall() {
+    if (SmartAdserver.sasInjected) {
+      return;
+    }
+    SmartAdserver.sasInjected = true;
+    const auction = () => this.worker.prebid;
+    const { smartSkipper } = this.worker;
     injectCall(sas, 'setup', (sasSetup, param, ...rest) => {
-      return sasSetup(Object.assign({}, param, { renderMode: 2 }), ...rest);
+      const newParam = Object.assign({}, param, { renderMode: 2 });
+      if (smartSkipper) {
+        smartSkipper.setupSetupParams(newParam);
+      }
+      return sasSetup(newParam, ...rest);
     });
     injectCall(sas, 'call', (sasCall, type, param, options, ...rest) => {
       let newParam = param;
       if (type === 'onecall') {
         newParam = toPostParam(param);
       }
-      const newOptions = this.setupOptions(auction, options);
+      const newOptions = this.setupOptions(auction(), options);
       this.calledFormats.push(...getFormatsAndTags(newParam));
-      if (!auction.sasOnlyUseRendered) {
-        auction.startPrebid(this.calledFormats.map(f => f.tagId));
+      if (!auction().sasOnlyUseRendered) {
+        auction().startPrebid(this.calledFormats.map(f => f.tagId));
+      }
+      if (smartSkipper) {
+        smartSkipper.setupCallParams(newParam, newOptions);
       }
       return sasCall.call(sas, type, newParam, newOptions, ...rest);
     });
-    if (auction.sasOnlyUseRendered) {
+    if (auction().sasOnlyUseRendered || smartSkipper) {
       injectCall(sas, 'render', (sasRender, fmtId, ...rest) => {
-        auction.log('Render: ' + fmtId);
+        auction().log('Render: ' + fmtId);
         if (fmtId) {
           if (!this.renderSeen) {
             this.renderSeen = {};
-            setTimeout(() => {
-              auction.startPrebid(this.calledFormats.filter(f => this.renderSeen[f.id]).map(f => f.tagId));
-            });
+            if (auction().sasOnlyUseRendered) {
+              setTimeout(() => {
+                auction().startPrebid(this.calledFormats.filter(f => this.renderSeen[f.id]).map(f => f.tagId));
+              });
+            }
           }
           this.renderSeen[fmtId] = true;
+        }
+        if (smartSkipper && smartSkipper.skipHandleRender(fmtId)) {
+          return;
         }
         return fmtId === undefined ? sasRender.call(sas) : sasRender.call(sas, fmtId, ...rest);
       });
@@ -156,6 +176,9 @@ class SmartAdserver extends AdserverBase {
   initPrebidAuction(auction) {
     window.sas = window.sas || {};
     sas.cmd = sas.cmd || [];
+    if (auction.skipSmartAdserver && !this.worker.smartSkipper) {
+      this.worker.smartSkipper = new SmartSkipper(this.worker);
+    }
     if (!('injectSmartCalls' in auction) || auction.injectSmartCalls) { // inject by default..
       this.injectSmartCall(auction);
     }

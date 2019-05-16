@@ -163,7 +163,7 @@ class RelevantWorker
     }
     let adserver = find(this.adservers, ads => ads instanceof Type);
     if (!adserver) {
-      adserver = new Type();
+      adserver = new Type(this);
       this.adservers.push(adserver);
     }
     return adserver;
