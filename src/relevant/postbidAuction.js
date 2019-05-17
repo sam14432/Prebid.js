@@ -35,6 +35,7 @@ const DEFAULT = {
   adserverType: 'dfp',
   googleCollapseEmptyDivStyle: 'full', // 'full', 'post', else none
   trickSasPassbackIntoIframe: false,
+  hidePassbackUntilFinished: false,
 };
 
 class PostbidAuction extends AuctionBase
