@@ -113,8 +113,8 @@ class PostbidAuction extends AuctionBase
 
   init() {
     super.init();
-    this.event('onInitPostbid');
     this.adserver.initPostbidAuction(this);
+    this.event('onInitPostbid');
     if(!this.iframe) {
       this.initIframe();
     }
@@ -147,6 +147,7 @@ class PostbidAuction extends AuctionBase
           googletag.pubads().enableSingleRequest();
         }
         googletag.enableServices();
+        this.event('onGoogletagInit', { googletag });
         initializedGoogleTags.push(googletag);
       }
       auction.log('calling googletag.display()');

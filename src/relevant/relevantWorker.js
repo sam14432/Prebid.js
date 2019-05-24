@@ -15,6 +15,16 @@ const logToConsole = hasDebugOption('relevant-console');
 const prebidDebug = hasDebugOption('relevant-debug');
 const noCatch = hasDebugOption('relevant-no-catch');
 
+const bidderToIabVendorId = {
+  adform: 50,
+  smartadserver: 45,
+  rubicon: 52,
+  openx: 69,
+  criteo: 91,
+  improvedigital: 253,
+  pubmatic: 76,
+};
+
 class RelevantWorker
 {
   constructor(preQueue, pbjs) {
@@ -25,6 +35,7 @@ class RelevantWorker
       pendingAuctions: [],
       logToConsole,
       prebidDebug,
+      bidderToIabVendorId,
     });
     this.queue = preQueue || [];
     this.pbjs = pbjs;
