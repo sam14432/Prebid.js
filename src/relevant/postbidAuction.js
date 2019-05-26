@@ -147,7 +147,7 @@ class PostbidAuction extends AuctionBase
           googletag.pubads().enableSingleRequest();
         }
         googletag.enableServices();
-        this.event('onGoogletagInit', { googletag });
+        auction.event('onGoogleTagInit', { googletag });
         initializedGoogleTags.push(googletag);
       }
       auction.log('calling googletag.display()');

@@ -69,7 +69,7 @@ class WinSizeCalculator
         scanHeight(doc.body)
       }
     } catch (e) { /** Unfriendly iframe */}
-    if (height <= 1 && win.parent !== top) {
+    if (height <= 1 && win.parent && win.parent !== top && win.parent !== win) {
       return this.getDimensions(win.parent, true);
     }
     return { width, height, ifr: win.frameElement };
