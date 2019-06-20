@@ -8,7 +8,7 @@ import {parse} from '../src/url';
 const SUPPORTED_AD_TYPES = [BANNER, VIDEO];
 const BIDDER_CODE = 'openx';
 const BIDDER_CONFIG = 'hb_pb';
-const BIDDER_VERSION = '2.1.6';
+const BIDDER_VERSION = '2.1.7';
 
 let shouldSendBoPixel = true;
 
@@ -115,6 +115,15 @@ function createBannerBidResponses(oxResponseObj, {bids, startTime}) {
       bidResponse.tbd = adUnit.tbd;
     }
     bidResponse.ts = adUnit.ts;
+
+    bidResponse.meta = {};
+    if (adUnit.brand_id) {
+      bidResponse.meta.brandId = adUnit.brand_id;
+    }
+
+    if (adUnit.adv_id) {
+      bidResponse.meta.dspid = adUnit.adv_id;
+    }
 
     bidResponses.push(bidResponse);
 
@@ -228,7 +237,9 @@ function buildCommonQueryParamsFromBids(bids, bidderRequest) {
     }
   }
 
-  if (bids[0].crumbs && bids[0].crumbs.pubcid) {
+  if ((bids[0].userId && bids[0].userId.pubcid)) {
+    defaultParams.pubcid = bids[0].userId.pubcid;
+  } else if (bids[0].crumbs && bids[0].crumbs.pubcid) {
     defaultParams.pubcid = bids[0].crumbs.pubcid;
   }
 
@@ -273,7 +284,7 @@ function buildOXBannerRequest(bids, bidderRequest) {
   let hasCustomFloor = false;
   bids.forEach(function (bid) {
     if (bid.params.customFloor) {
-      customFloorsForAllBids.push(bid.params.customFloor * 1000);
+      customFloorsForAllBids.push((Math.round(bid.params.customFloor * 100) / 100) * 1000);
       hasCustomFloor = true;
     } else {
       customFloorsForAllBids.push(0);
