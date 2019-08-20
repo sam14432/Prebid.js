@@ -99,7 +99,11 @@ class SmartAdserver extends AdserverBase {
     const { onNoad, onLoad } = newOptions; // old callbacks
     newOptions.onLoad = (param, ...rest) => {
       if (onLoad) {
-        onLoad(Object.assign({}, param, { hasAd: true }), ...rest);
+        const newLoadParams = Object.assign({}, param);
+        if (auction.unitsByCode && auction.unitsByCode[param.tagId]) {
+          newLoadParams.hasAd = true;
+        }
+        onLoad(newLoadParams, ...rest);
       }
     };
     newOptions.onNoad = (param, ...rest) => {
