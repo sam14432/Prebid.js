@@ -15,7 +15,7 @@ const isAdUnitCode = (str) => {
   return true;
 };
 
-const toParts = s => (s || '').split(',').filter(s => s);
+const toParts = s => (s || '').toString().split(',').filter(s => s);
 
 const extractAdUnitCode = (str) => {
   const match = /defineSlot\s?\(\s?["'](.*?)["']/.exec(str);
