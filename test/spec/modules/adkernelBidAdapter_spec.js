@@ -5,9 +5,11 @@ import * as utils from 'src/utils';
 describe('Adkernel adapter', function () {
   const bid1_zone1 = {
       bidder: 'adkernel',
-      bidId: 'Bid_01',
       params: {zoneId: 1, host: 'rtb.adkernel.com'},
       adUnitCode: 'ad-unit-1',
+      bidId: 'Bid_01',
+      bidderRequestId: 'req-001',
+      auctionId: 'auc-001',
       mediaTypes: {
         banner: {
           sizes: [[300, 250], [300, 200]]
@@ -15,19 +17,23 @@ describe('Adkernel adapter', function () {
       }
     }, bid2_zone2 = {
       bidder: 'adkernel',
-      bidId: 'Bid_02',
       params: {zoneId: 2, host: 'rtb.adkernel.com'},
       adUnitCode: 'ad-unit-2',
+      bidId: 'Bid_02',
+      bidderRequestId: 'req-001',
+      auctionId: 'auc-001',
       mediaTypes: {
         banner: {
-          sizes: [728, 90]
+          sizes: [[728, 90]]
         }
       }
     }, bid3_host2 = {
       bidder: 'adkernel',
-      bidId: 'Bid_02',
       params: {zoneId: 1, host: 'rtb-private.adkernel.com'},
       adUnitCode: 'ad-unit-2',
+      bidId: 'Bid_02',
+      bidderRequestId: 'req-001',
+      auctionId: 'auc-001',
       mediaTypes: {
         banner: {
           sizes: [[728, 90]]
@@ -35,9 +41,11 @@ describe('Adkernel adapter', function () {
       }
     }, bid_without_zone = {
       bidder: 'adkernel',
-      bidId: 'Bid_W',
       params: {host: 'rtb-private.adkernel.com'},
       adUnitCode: 'ad-unit-1',
+      bidId: 'Bid_W',
+      bidderRequestId: 'req-002',
+      auctionId: 'auc-002',
       mediaTypes: {
         banner: {
           sizes: [[728, 90]]
@@ -45,9 +53,11 @@ describe('Adkernel adapter', function () {
       }
     }, bid_without_host = {
       bidder: 'adkernel',
-      bidId: 'Bid_W',
       params: {zoneId: 1},
       adUnitCode: 'ad-unit-1',
+      bidId: 'Bid_W',
+      bidderRequestId: 'req-002',
+      auctionId: 'auc-002',
       mediaTypes: {
         banner: {
           sizes: [[728, 90]]
@@ -55,9 +65,11 @@ describe('Adkernel adapter', function () {
       }
     }, bid_with_wrong_zoneId = {
       bidder: 'adkernel',
-      bidId: 'Bid_02',
       params: {zoneId: 'wrong id', host: 'rtb.adkernel.com'},
       adUnitCode: 'ad-unit-2',
+      bidId: 'Bid_02',
+      bidderRequestId: 'req-002',
+      auctionId: 'auc-002',
       mediaTypes: {
         banner: {
           sizes: [[728, 90]]
@@ -69,10 +81,10 @@ describe('Adkernel adapter', function () {
       bidId: 'Bid_Video',
       bidderRequestId: '18b2a61ea5d9a7',
       auctionId: 'de45acf1-9109-4e52-8013-f2b7cf5f6766',
-      sizes: [[640, 480]],
       params: {
         zoneId: 1,
-        host: 'rtb.adkernel.com'
+        host: 'rtb.adkernel.com',
+        video: {api: [1, 2]}
       },
       mediaTypes: {
         video: {
@@ -81,6 +93,18 @@ describe('Adkernel adapter', function () {
         }
       },
       adUnitCode: 'ad-unit-1'
+    }, bid_multiformat = {
+      bidder: 'adkernel',
+      params: {zoneId: 1, host: 'rtb.adkernel.com'},
+      mediaTypes: {
+        banner: {sizes: [[300, 250], [300, 200]]},
+        video: {context: 'instream', playerSize: [[640, 480]]}
+      },
+      adUnitCode: 'ad-unit-1',
+      transactionId: 'f82c64b8-c602-42a4-9791-4a268f6559ed',
+      bidId: 'Bid_01',
+      bidderRequestId: 'req-001',
+      auctionId: 'auc-001'
     };
 
   const bidResponse1 = {
@@ -137,9 +161,10 @@ describe('Adkernel adapter', function () {
     };
 
   function buildBidderRequest(url = 'https://example.com/index.html', params = {}) {
-    return Object.assign({}, params, {refererInfo: {referer: url, reachedTop: true}})
+    return Object.assign({}, params, {refererInfo: {referer: url, reachedTop: true}, timeout: 3000});
   }
   const DEFAULT_BIDDER_REQUEST = buildBidderRequest();
+
   function buildRequest(bidRequests, bidderRequest = DEFAULT_BIDDER_REQUEST, dnt = true) {
     let dntmock = sinon.stub(utils, 'getDNT').callsFake(() => dnt);
     let pbRequests = spec.buildRequests(bidRequests, bidderRequest);
@@ -181,6 +206,11 @@ describe('Adkernel adapter', function () {
 
     it('should have banner object', function () {
       expect(bidRequest.imp[0]).to.have.property('banner');
+    });
+
+    it('should have id', function () {
+      expect(bidRequest.imp[0]).to.have.property('id');
+      expect(bidRequest.imp[0].id).to.be.eql('Bid_01');
     });
 
     it('should have w/h', function () {
@@ -237,6 +267,12 @@ describe('Adkernel adapter', function () {
       let [_, bidRequests] = buildRequest([bid1_zone1], DEFAULT_BIDDER_REQUEST, false);
       expect(bidRequests[0].device).to.not.have.property('dnt');
     });
+
+    it('should forward default bidder timeout', function() {
+      let [_, bidRequests] = buildRequest([bid1_zone1], DEFAULT_BIDDER_REQUEST);
+      let bidRequest = bidRequests[0];
+      expect(bidRequests[0]).to.have.property('tmax', 3000);
+    });
   });
 
   describe('video request building', function () {
@@ -256,6 +292,27 @@ describe('Adkernel adapter', function () {
 
     it('should have tagid', function () {
       expect(bidRequests[0].imp[0]).to.have.property('tagid', 'ad-unit-1');
+    });
+
+    it('should have openrtb video impression parameters', function() {
+      expect(bidRequests[0].imp[0].video).to.have.property('api');
+      expect(bidRequests[0].imp[0].video.api).to.be.eql([1, 2]);
+    });
+  });
+
+  describe('multiformat request building', function () {
+    let _, bidRequests;
+    before(function () {
+      [_, bidRequests] = buildRequest([bid_multiformat]);
+    });
+    it('should contain single request', function () {
+      expect(bidRequests).to.have.length(1);
+      expect(bidRequests[0].imp).to.have.length(1);
+    });
+    it('should contain banner-only impression', function () {
+      expect(bidRequests[0].imp).to.have.length(1);
+      expect(bidRequests[0].imp[0]).to.have.property('banner');
+      expect(bidRequests[0].imp[0]).to.not.have.property('video');
     });
   });
 
@@ -327,8 +384,8 @@ describe('Adkernel adapter', function () {
 
   describe('adapter configuration', () => {
     it('should have aliases', () => {
-      expect(spec.aliases).to.have.lengthOf(1);
-      expect(spec.aliases[0]).to.be.equal('headbidding');
+      expect(spec.aliases).to.have.lengthOf(6);
+      expect(spec.aliases).to.include.members(['headbidding', 'adsolut', 'oftmediahb', 'audiencemedia', 'waardex_ak', 'roqoon']);
     });
   });
 });
