@@ -1,6 +1,7 @@
 /* eslint-disable */
 import find from 'core-js/library/fn/array/find';
 import AuctionBase from './auctionBase';
+import Reloader from './reloader';
 import { isFunction } from './utils';
 import { DEFAULT_GOOGLE_PATH_PREPEND } from './constants';
 
@@ -38,6 +39,9 @@ class PrebidAuction extends AuctionBase
     this.adUnits.forEach((adUnit) => {
       this.unitsByCode[adUnit.code] = adUnit;
     });
+    if (Reloader.needReloader(this)) {
+      this.reloader = new Reloader(worker, this);
+    }
   }
 
   auctionType() { return 'prebid'; }
@@ -80,6 +84,9 @@ class PrebidAuction extends AuctionBase
         });
         if(!find(this.allAdUnits, u => u.prebidStarted && !u.prebidGotBidsBack)) {
           this.sendAdserverRequest(false);
+          if (this.reloader) {
+            this.reloader.onPrebidFinished(this);
+          }
         }
       },
     });
