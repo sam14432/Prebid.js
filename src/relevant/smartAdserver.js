@@ -215,15 +215,22 @@ class SmartAdserver extends AdserverBase {
     return res;
   }
 
-  sendAdserverRequest(auction) {
+  sendAdserverRequest(auction, { isReload, adUnits }) {
     sas.cmd.push(() => {
-      auction.adUnits.forEach((adUnit) => {
+      const units = adUnits || auction.adUnits;
+      units.forEach((adUnit) => {
         const bid = auction.pbjs.getHighestCpmBids(adUnit.code)[0];
         if (bid) {
           sas.setHeaderBiddingWinner(adUnit.code, bid);
         }
       });
-      sas.render();
+      if (isReload) {
+        units.forEach((unit) => {
+          sas.refresh(unit.code);
+        });
+      } else {
+        sas.render();
+      }
     });
   }
 

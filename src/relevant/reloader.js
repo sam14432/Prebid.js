@@ -103,13 +103,21 @@ class Reloader {
     }
     const now = new Date();
     const soon = new Date() + WAIT_COMBINED_AUCTION_MS;
-    this.states.forEach((state) => {
+    const codes = [];
+    for(let i = 0; i < this.states.length; i++) {
+      const state = this.states[i];
       const nextTs = state.timeForNextRender();
-      if (!nextTs) {
-
+      if (!nextTs || nextTs > soon || !state.isVisible()) {
+        continue;
       }
-
-    });
+      if (nextTs >= now) {
+        return; // let's do it 'soon'
+      }
+      codes.push(state.code);
+    }
+    if (codes.length) {
+      this.auction.startPrebid(codes, true);
+    }
   }
 
   getState(code) {
