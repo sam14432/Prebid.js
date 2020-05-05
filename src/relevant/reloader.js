@@ -1,4 +1,9 @@
 import find from 'core-js/library/fn/array/find';
+import {deepAccess, deepClone} from '../utils';
+
+const MIN_VISIBILITY = 0.8;
+const RELOAD_POLL_MS = 1000;
+const WAIT_COMBINED_AUCTION_MS = 2000;
 
 class ReloadState {
     constructor(settings) {
@@ -7,43 +12,104 @@ class ReloadState {
         renderCount: 0,
       });
     }
+
+    onRender() {
+      this.lastRenderTs = new Date();
+      this.renderCount++;
+      this.isIdle = true;
+    }
+
+    hasFinished() {
+      return this.renderCount > this.times;
+    }
+
+    timeForNextRender() {
+      if (!this.isIdle || this.hasFinished()) {
+        return null;
+      }
+      return new Date(this.lastRenderTs + (this.interval * 1000));
+    }
+
+    isVisible() {
+      if (!this.minVisibility) {
+        return true;
+      }
+      const div = this.reloader.adserver.getAdDivFromCode(this.code);
+      if(!div) {
+        return false;
+      }
+      const defaultSz = (deepAccess(this.adUnit, 'mediaTypes.banner.sizes') || [])[0];
+      if (!defaultSz) {
+        return false;
+      }
+      const [width, height] = defaultSz;
+      const { left, top } = div.getBoundingClientRect();
+      const visibleWidth = Math.min(innerWidth, left + width) - Math.max(left, 0);
+      const visibleHeight = Math.min(innerHeight, top + height) - Math.max(top, 0);
+      return visibleWidth > 0 && visibleHeight > 0 && (visibleWidth * visibleHeight) > (width * height * MIN_VISIBILITY);
+    }
 };
 
 class Reloader {
   constructor(worker, auction) {
     Object.assign(this, {
+      adUnits: deepClone(auction.adUnits),
       worker,
       auction,
+      adserver: auction.adserver,
       reloadAuctions,
       states: [],
+      reCheckInterval: auction.reloadPollMs || RELOAD_POLL_MS,
     });
     this.adUnits.forEach((adUnit) => {
-      if (!adUnit.reload) {
+      if (!adUnit.reload && !adUnit.reloadAfter) {
         return;
       }
-      const reloadAfter = 'reloadAfter' in adUnit ? adUnit.reloadAfter : auction.reloadAfter;
-      const reloadTimes = 'reloadTimes' in adUnit ? adUnit.reloadTimes : auction.reloadTimes;
-      if (!reloadAfter || !reloadTimes) {
+      const settings = {};
+      ['reloadAfter', 'reloadTimes', 'reloadMinVisibility'].forEach((key) => {
+        settings[key] = key in adUnit ? adUnit[key] : auction[key];
+      });
+      if (!settings.reloadAfter || !settings.reloadTimes) {
         return;
       }
-      states.push(new ReloadState({
+      const minVisibility = settings.reloadMinVisibility === undefined ? MIN_VISIBILITY : settings.reloadMinVisibility || 0;
+      this.states.push(new ReloadState({
+        adUnit,
         code: adUnit.code,
         reloader: this,
-        interval: reloadAfter,
-        times: reloadTimes,
+        interval: settings.reloadAfter,
+        times: settings.reloadTimes,
+        minVisibility,
       }));
     });
     auction.adserver.registerListener((data) => {
       const state = getState(data.code);
       if (state) {
         state.onRender(data);
-        this.runChecks();
       }
     });
   }
 
   runChecks() {
-    
+    this.runChecksInternal();
+    if (find(this.states, (state) => !state.hasFinished())) {
+      this.setTimeout(this.runChecks.bind(this), this.reCheckInterval);
+    }
+  }
+
+  runChecksInternal() {
+    if (!this.prebidIdle) {
+      return;
+    }
+    const now = new Date();
+    const soon = new Date() + WAIT_COMBINED_AUCTION_MS;
+    this.states.forEach((state) => {
+      const nextTs = state.timeForNextRender();
+      if (!nextTs) {
+
+      }
+
+    });
   }
 
   getState(code) {
@@ -51,7 +117,7 @@ class Reloader {
   }
 
   onPrebidFinished(auction) {
-    runChecks();
+    this.prebidIdle = true;
   }
 
   static needReloader(auction) {
