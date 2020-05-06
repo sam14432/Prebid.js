@@ -13,10 +13,20 @@ class ReloadState {
     });
   }
 
-  onRender() {
+  onRender({ isEmpty }) {
     this.lastRenderTs = new Date();
     this.renderCount++;
     this.isIdle = true;
+    if (!isEmpty && this.renderCount > 1) {
+      const adDiv = this.getAdDiv();
+      if (adDiv && adDiv.style && adDiv.style.display === 'none') {
+        adDiv.style.display = '';
+      }
+    }
+  }
+
+  getAdDiv() {
+    return this.reloader.adserver.getAdDivFromCode(this.code);
   }
 
   hasFinished() {
@@ -27,14 +37,14 @@ class ReloadState {
     if (!this.isIdle || this.hasFinished()) {
       return null;
     }
-    return new Date(this.lastRenderTs + (this.interval * 1000));
+    return new Date(this.lastRenderTs.getTime() + (this.interval * 1000));
   }
 
   isVisible() {
     if (!this.minVisibility) {
       return true;
     }
-    const div = this.reloader.adserver.getAdDivFromCode(this.code);
+    const div = this.getAdDiv();
     if (!div) {
       return false;
     }
@@ -57,7 +67,6 @@ class Reloader {
       worker,
       auction,
       adserver: auction.adserver,
-      reloadAuctions,
       states: [],
       reCheckInterval: auction.reloadPollMs || RELOAD_POLL_MS,
     });
@@ -83,17 +92,18 @@ class Reloader {
       }));
     });
     auction.adserver.registerListener((data) => {
-      const state = getState(data.code);
+      const state = this.getState(data.code);
       if (state) {
         state.onRender(data);
       }
     });
+    this.runChecks();
   }
 
   runChecks() {
     this.runChecksInternal();
     if (find(this.states, (state) => !state.hasFinished())) {
-      this.setTimeout(this.runChecks.bind(this), this.reCheckInterval);
+      setTimeout(this.runChecks.bind(this), this.reCheckInterval);
     }
   }
 
@@ -113,6 +123,7 @@ class Reloader {
       if (nextTs >= now) {
         return; // let's do it 'soon'
       }
+      state.isIdle = false;
       codes.push(state.code);
     }
     if (codes.length) {

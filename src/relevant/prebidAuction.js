@@ -39,15 +39,6 @@ class PrebidAuction extends AuctionBase
     this.adUnits.forEach((adUnit) => {
       this.unitsByCode[adUnit.code] = adUnit;
     });
-
-/* TA BORT */
-    this.reloadAfter = 10;
-    this.reloadTimes = 100;
-    this.adUnits.forEach((adUnit) => {
-      adUnit.reload = true;
-    });
-
-
     if (Reloader.needReloader(this)) {
       this.reloader = new Reloader(worker, this);
     }
@@ -95,7 +86,7 @@ class PrebidAuction extends AuctionBase
           adUnit.prebidGotBidsBack = true;
         });
         if(!find(this.allAdUnits, u => u.prebidStarted && !u.prebidGotBidsBack)) {
-          this.sendAdserverRequest(false, true, adUnits);
+          this.sendAdserverRequest(false, { isReload, adUnits });
           if (this.reloader) {
             this.reloader.onPrebidFinished(this);
           }

@@ -234,6 +234,10 @@ class SmartAdserver extends AdserverBase {
     });
   }
 
+  getAdDivFromCode(code) {
+    return document.getElementById(code);
+  }
+
   registerListener(cb) {
     const handle = (isEmpty, { tagId }) => {
       cb({ isEmpty, code: tagId });
