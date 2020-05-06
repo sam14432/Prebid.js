@@ -4,6 +4,34 @@ import {deepAccess, deepClone} from '../utils';
 const MIN_VISIBILITY = 0.8;
 const RELOAD_POLL_MS = 1000;
 const WAIT_COMBINED_AUCTION_MS = 2000;
+const MAX_NO_ACTIVITY_SECONDS = 30;
+const ACTIVITY_EVENTS = ['scroll'];
+
+const isReloadAdUnit = (auction, adUnit) => {
+  if (auction.reloadAll) {
+    if ('reload' in adUnit) {
+      return adUnit.reload;
+    }
+    return true;
+  }
+  return adUnit.reload || adUnit.reloadAfter;
+};
+
+// We might need to temporary display hidden elements in order to get the position
+const getClientRect = (elm) => {
+  const arr = [];
+  for (let node = elm; node && getComputedStyle(node, null).display === 'none'; node = node.parentNode) {
+    if (node.style) {
+      arr.push({ node, display: node.style.display });
+      node.style.display = '';
+    }
+  }
+  const res = elm.getBoundingClientRect();
+  arr.forEach(({ node, display }) => {
+    node.style.display = display;
+  });
+  return res;
+};
 
 class ReloadState {
   constructor(settings) {
@@ -53,7 +81,7 @@ class ReloadState {
       return false;
     }
     const [width, height] = defaultSz;
-    const { left, top } = div.getBoundingClientRect();
+    const { left, top } = getClientRect(div);
     const visibleWidth = Math.min(innerWidth, left + width) - Math.max(left, 0);
     const visibleHeight = Math.min(innerHeight, top + height) - Math.max(top, 0);
     return visibleWidth > 0 && visibleHeight > 0 && (visibleWidth * visibleHeight) > (width * height * MIN_VISIBILITY);
@@ -69,9 +97,11 @@ class Reloader {
       adserver: auction.adserver,
       states: [],
       reCheckInterval: auction.reloadPollMs || RELOAD_POLL_MS,
+      maxNoActivitySeconds: 'reloadMaxNoActivitySeconds' in auction ? auction.reloadMaxNoActivitySeconds : MAX_NO_ACTIVITY_SECONDS,
+      lastActivityTs: new Date(),
     });
     this.adUnits.forEach((adUnit) => {
-      if (!adUnit.reload && !adUnit.reloadAfter) {
+      if (!isReloadAdUnit(auction, adUnit)) {
         return;
       }
       const settings = {};
@@ -98,6 +128,11 @@ class Reloader {
       }
     });
     this.runChecks();
+    ACTIVITY_EVENTS.forEach((evName) => {
+      window.addEventListener(evName, () => {
+        this.lastActivityTs = new Date();
+      });
+    });
   }
 
   runChecks() {
@@ -111,8 +146,11 @@ class Reloader {
     if (!this.prebidIdle) {
       return;
     }
+    if (this.maxNoActivitySeconds && (new Date() - this.lastActivityTs) > (this.maxNoActivitySeconds * 1000)) {
+      return;
+    }
     const now = new Date();
-    const soon = new Date() + WAIT_COMBINED_AUCTION_MS;
+    const soon = new Date(now + WAIT_COMBINED_AUCTION_MS);
     const codes = [];
     for (let i = 0; i < this.states.length; i++) {
       const state = this.states[i];
@@ -140,7 +178,7 @@ class Reloader {
   }
 
   static needReloader(auction) {
-    return !!find(auction.adUnits, (a) => a.reload || a.reloadAfter);
+    return !!find(auction.adUnits, (adUnit) => isReloadAdUnit(auction, adUnit));
   }
 }
 
