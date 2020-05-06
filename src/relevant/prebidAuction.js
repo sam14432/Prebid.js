@@ -39,6 +39,15 @@ class PrebidAuction extends AuctionBase
     this.adUnits.forEach((adUnit) => {
       this.unitsByCode[adUnit.code] = adUnit;
     });
+
+/* TA BORT */
+    this.reloadAfter = 10;
+    this.reloadTimes = 100;
+    this.adUnits.forEach((adUnit) => {
+      adUnit.reload = true;
+    });
+
+
     if (Reloader.needReloader(this)) {
       this.reloader = new Reloader(worker, this);
     }

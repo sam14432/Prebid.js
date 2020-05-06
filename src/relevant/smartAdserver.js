@@ -240,16 +240,15 @@ class SmartAdserver extends AdserverBase {
     };
     sas.cmd.push(() => {
       sas.events.history().forEach(({ eventName, data }) => {
-        if(eventName === 'ad') {
+        if (eventName === 'ad') {
           handle(false, data);
-        } else if(eventName === 'noad') {
+        } else if (eventName === 'noad') {
           handle(true, data);
         }
       });
       sas.events.on('ad', (param) => handle(false, param));
       sas.events.on('noad', (param) => handle(true, param));
     });
-
   }
 }
 

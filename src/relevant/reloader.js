@@ -6,48 +6,48 @@ const RELOAD_POLL_MS = 1000;
 const WAIT_COMBINED_AUCTION_MS = 2000;
 
 class ReloadState {
-    constructor(settings) {
-      Object.assign(this, settings, {
-        lastRenderTs: null,
-        renderCount: 0,
-      });
-    }
+  constructor(settings) {
+    Object.assign(this, settings, {
+      lastRenderTs: null,
+      renderCount: 0,
+    });
+  }
 
-    onRender() {
-      this.lastRenderTs = new Date();
-      this.renderCount++;
-      this.isIdle = true;
-    }
+  onRender() {
+    this.lastRenderTs = new Date();
+    this.renderCount++;
+    this.isIdle = true;
+  }
 
-    hasFinished() {
-      return this.renderCount > this.times;
-    }
+  hasFinished() {
+    return this.renderCount > this.times;
+  }
 
-    timeForNextRender() {
-      if (!this.isIdle || this.hasFinished()) {
-        return null;
-      }
-      return new Date(this.lastRenderTs + (this.interval * 1000));
+  timeForNextRender() {
+    if (!this.isIdle || this.hasFinished()) {
+      return null;
     }
+    return new Date(this.lastRenderTs + (this.interval * 1000));
+  }
 
-    isVisible() {
-      if (!this.minVisibility) {
-        return true;
-      }
-      const div = this.reloader.adserver.getAdDivFromCode(this.code);
-      if(!div) {
-        return false;
-      }
-      const defaultSz = (deepAccess(this.adUnit, 'mediaTypes.banner.sizes') || [])[0];
-      if (!defaultSz) {
-        return false;
-      }
-      const [width, height] = defaultSz;
-      const { left, top } = div.getBoundingClientRect();
-      const visibleWidth = Math.min(innerWidth, left + width) - Math.max(left, 0);
-      const visibleHeight = Math.min(innerHeight, top + height) - Math.max(top, 0);
-      return visibleWidth > 0 && visibleHeight > 0 && (visibleWidth * visibleHeight) > (width * height * MIN_VISIBILITY);
+  isVisible() {
+    if (!this.minVisibility) {
+      return true;
     }
+    const div = this.reloader.adserver.getAdDivFromCode(this.code);
+    if (!div) {
+      return false;
+    }
+    const defaultSz = (deepAccess(this.adUnit, 'mediaTypes.banner.sizes') || [])[0];
+    if (!defaultSz) {
+      return false;
+    }
+    const [width, height] = defaultSz;
+    const { left, top } = div.getBoundingClientRect();
+    const visibleWidth = Math.min(innerWidth, left + width) - Math.max(left, 0);
+    const visibleHeight = Math.min(innerHeight, top + height) - Math.max(top, 0);
+    return visibleWidth > 0 && visibleHeight > 0 && (visibleWidth * visibleHeight) > (width * height * MIN_VISIBILITY);
+  }
 };
 
 class Reloader {
@@ -104,7 +104,7 @@ class Reloader {
     const now = new Date();
     const soon = new Date() + WAIT_COMBINED_AUCTION_MS;
     const codes = [];
-    for(let i = 0; i < this.states.length; i++) {
+    for (let i = 0; i < this.states.length; i++) {
       const state = this.states[i];
       const nextTs = state.timeForNextRender();
       if (!nextTs || nextTs > soon || !state.isVisible()) {
