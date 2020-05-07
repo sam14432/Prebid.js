@@ -8,13 +8,13 @@ const MAX_NO_ACTIVITY_SECONDS = 30;
 const ACTIVITY_EVENTS = ['scroll'];
 
 const isReloadAdUnit = (auction, adUnit) => {
+  if ('reload' in adUnit) {
+    return !!adUnit.reload;
+  }
   if (auction.reloadAll) {
-    if ('reload' in adUnit) {
-      return adUnit.reload;
-    }
     return true;
   }
-  return adUnit.reload || adUnit.reloadAfter;
+  return !!adUnit.reloadAfter;
 };
 
 // We might need to temporary display hidden elements in order to get the position
