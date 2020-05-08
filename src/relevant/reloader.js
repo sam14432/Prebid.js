@@ -7,6 +7,8 @@ const WAIT_COMBINED_AUCTION_MS = 2000;
 const MAX_NO_ACTIVITY_SECONDS = 30;
 const ACTIVITY_EVENTS = ['scroll'];
 
+const isTabHidden = () => find(['hidden', 'mozHidden', 'webkitHidden', 'msHidden'], (s) => document[s]);
+
 const isReloadAdUnit = (auction, adUnit) => {
   if ('reload' in adUnit) {
     return !!adUnit.reload;
@@ -133,6 +135,13 @@ class Reloader {
         this.lastActivityTs = new Date();
       });
     });
+    ['visibilitychange', 'webkitvisibilitychange', 'mozvisibilitychange', 'msvisibilitychange'].forEach((evType) => {
+      document.addEventListener(evType, () => {
+        if (!isTabHidden()) {
+          this.lastActivityTs = new Date();
+        }
+      });
+    });
   }
 
   runChecks() {
@@ -143,7 +152,7 @@ class Reloader {
   }
 
   runChecksInternal() {
-    if (!this.prebidIdle) {
+    if (!this.prebidIdle || isTabHidden()) {
       return;
     }
     if (this.maxNoActivitySeconds && (new Date() - this.lastActivityTs) > (this.maxNoActivitySeconds * 1000)) {
