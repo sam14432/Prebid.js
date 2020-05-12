@@ -141,6 +141,7 @@ class PrebidAuction extends AuctionBase
       hacks: this.hacks,
       unitId: code,
       existingLegacyIframe: param.existingLegacyIframe,
+      events: param.events,
     };
     PREBID_COPY_VARS.forEach((varName) => {
       if(varName in this) {

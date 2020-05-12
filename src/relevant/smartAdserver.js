@@ -97,17 +97,15 @@ class SmartAdserver extends AdserverBase {
   setupOptions(auction, options) {
     const newOptions = Object.assign({}, options);
     const { onNoad, onLoad } = newOptions; // old callbacks
+    const isPrebidUnit = (param) => auction.unitsByCode && auction.unitsByCode[param.tagId];
     newOptions.onLoad = (param, ...rest) => {
-      if (onLoad) {
-        const newLoadParams = Object.assign({}, param);
-        if (auction.unitsByCode && auction.unitsByCode[param.tagId]) {
-          newLoadParams.hasAd = true;
-        }
-        onLoad(newLoadParams, ...rest);
+      if (onLoad && (!isPrebidUnit(param) || param.hasAd)) {
+        onLoad.call(options, param, ...rest);
       }
     };
     newOptions.onNoad = (param, ...rest) => {
       const triggerNoad = () => (onNoad ? onNoad.call(options, param, ...rest) : null);
+      const triggerLoad = (hasAd) => onLoad && isPrebidUnit(param) && onLoad.call(options, Object.assign({}, param, { hasAd }));
       const renderParams = {
         tagId: param.tagId,
         events: {
@@ -115,12 +113,14 @@ class SmartAdserver extends AdserverBase {
             if (noAd) {
               triggerNoad();
             }
+            triggerLoad(!noAd);
           },
         },
       };
       const rendered = auction.renderUsingParams(renderParams);
       if (!rendered) {
         triggerNoad();
+        triggerLoad(false);
       }
     };
     return newOptions;
