@@ -1,6 +1,7 @@
 /* eslint-disable */
 import find from 'core-js/library/fn/array/find';
 import AuctionBase from './auctionBase';
+import Reloader from './reloader';
 import { isFunction } from './utils';
 import { DEFAULT_GOOGLE_PATH_PREPEND } from './constants';
 
@@ -38,6 +39,9 @@ class PrebidAuction extends AuctionBase
     this.adUnits.forEach((adUnit) => {
       this.unitsByCode[adUnit.code] = adUnit;
     });
+    if (Reloader.needReloader(this)) {
+      this.reloader = new Reloader(worker, this);
+    }
   }
 
   auctionType() { return 'prebid'; }
@@ -50,25 +54,28 @@ class PrebidAuction extends AuctionBase
     return res;
   }
 
-  sendAdserverRequest(gotTimeout) {
-    if (this.adserverRequestTriggered) {
+  sendAdserverRequest(gotTimeout, settings = {}) {
+    if (this.adserverRequestTriggered && !settings.isReload) {
       return;
     }
     this.adserverRequestTriggered = true;
     this.log(`Sending adserver request ${gotTimeout ? 'WITHOUT all bids (timeout)' : 'with all bids'}`);
-    this.adserver.sendAdserverRequest(this);
+    this.adserver.sendAdserverRequest(this, settings);
   }
 
-  startPrebid(codes) {
+  startPrebid(codes, isReload) {
     const { pbjs } = this.worker;
-    const adUnits = this.allAdUnits().filter(unit => !unit.prebidStarted && (!codes || codes.indexOf(unit.code) >= 0));
+    const adUnits = this.allAdUnits().filter(unit => (!unit.prebidStarted || isReload) && (!codes || codes.indexOf(unit.code) >= 0));
     if(!adUnits.length) {
       return [];
     }
     this.log(`Requesting bids: ${ adUnits.map(u => u.code).join(', ')}`);
-    pbjs.addAdUnits(adUnits);
+    if (!isReload) {
+      pbjs.addAdUnits(adUnits);
+    }
     adUnits.forEach((adUnit) => {
       adUnit.prebidStarted = true;
+      adUnit.prebidGotBidsBack = false;
     });
     pbjs.requestBids({
       adUnitCodes: adUnits.map(unit => unit.code),
@@ -79,7 +86,10 @@ class PrebidAuction extends AuctionBase
           adUnit.prebidGotBidsBack = true;
         });
         if(!find(this.allAdUnits, u => u.prebidStarted && !u.prebidGotBidsBack)) {
-          this.sendAdserverRequest(false);
+          this.sendAdserverRequest(false, { isReload, adUnits });
+          if (this.reloader) {
+            this.reloader.onPrebidFinished(this);
+          }
         }
       },
     });
