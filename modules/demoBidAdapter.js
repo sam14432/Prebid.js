@@ -13,19 +13,21 @@ export const spec = {
   buildRequests(bidRequest, bidderRequest) {
     const req = bidRequest.map((bid) => {
       const cpm = Math.random() * ('avgRevenue' in bid.params ? bid.params.avgRevenue : 2);
+      const [ width, height ] = (bid.sizes || [])[0] || [100, 100];
+      const bidderName = bid.bidder === BIDDER_CODE ? 'Demo' : bid.bidder.charAt(1).toUpperCase() + bid.bidder.slice(2);
       return {
         bidId: bid.bidId,
         requestId: bid.bidId,
         creativeId: bid.bidId,
         cpm,
-        width: 100,
-        height: 100,
+        width,
+        height,
         ad: `
-        <div 
-            style="font-size: 30"
-        >
-            ${bid.bidder.charAt(1).toUpperCase() + bid.bidder.slice(2)} <br>$ ${cpm.toFixed(4)}
-        </div>`,
+          <div
+              style="background: lightgreen; font-size: 30; width: ${width}px; height: ${height}px;"
+          >
+              ${bidderName} <br>$ ${cpm.toFixed(4)}
+          </div>`,
         netRevenue: true,
         currency: 'USD',
         ttl: 60,
