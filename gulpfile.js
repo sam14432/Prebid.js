@@ -127,7 +127,7 @@ function makeDevpackPkg() {
   const analyticsSources = helpers.getAnalyticsSources();
   const moduleSources = helpers.getModulePaths(externalModules);
 
-  return gulp.src([].concat(moduleSources, analyticsSources, 'src/prebid.js'))
+  return gulp.src([].concat(moduleSources, analyticsSources, 'src/relevant/relevantWorker.js'))
     .pipe(helpers.nameModules(externalModules))
     .pipe(webpackStream(cloned, webpack))
     .pipe(gulp.dest('build/dev'))
@@ -143,7 +143,7 @@ function makeWebpackPkg() {
   const analyticsSources = helpers.getAnalyticsSources();
   const moduleSources = helpers.getModulePaths(externalModules);
 
-  return gulp.src([].concat(moduleSources, analyticsSources, 'src/prebid.js'))
+  return gulp.src([].concat(moduleSources, analyticsSources, 'src/relevant/relevantWorker.js'))
     .pipe(helpers.nameModules(externalModules))
     .pipe(webpackStream(cloned, webpack))
     .pipe(uglify())
@@ -186,7 +186,7 @@ function bundle(dev, moduleArr) {
 
   var entries = [helpers.getBuiltPrebidCoreFile(dev)].concat(helpers.getBuiltModules(dev, modules));
 
-  var outputFileName = argv.bundleName ? argv.bundleName : 'prebid.js';
+  var outputFileName = argv.bundleName ? argv.bundleName : 'relevant-client-lib.js';
 
   // change output filename if argument --tag given
   if (argv.tag && argv.tag.length) {
@@ -380,5 +380,12 @@ gulp.task('e2e-test', gulp.series(clean, setupE2e, gulp.parallel('build-bundle-p
 // other tasks
 gulp.task(bundleToStdout);
 gulp.task('bundle', gulpBundle.bind(null, false)); // used for just concatenating pre-built files with no build step
+
+gulp.__passVars = {
+  gulpBundle,
+  clean,
+  lint,
+};
+require('./relevant-tasks');
 
 module.exports = nodeBundle;
