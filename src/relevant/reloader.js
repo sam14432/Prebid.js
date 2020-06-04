@@ -1,4 +1,4 @@
-import find from 'core-js/library/fn/array/find';
+import find from 'core-js-pure/features/array/find.js';
 import {deepAccess, deepClone} from '../utils';
 
 const MIN_VISIBILITY = 0.8;

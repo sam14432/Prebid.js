@@ -1,7 +1,7 @@
 /* eslint-disable */
 require('../prebid');
 import * as utils from '../utils';
-import find from 'core-js/library/fn/array/find';
+import find from 'core-js-pure/features/array/find.js';
 import PostbidAuction from './postbidAuction';
 import PrebidAuction from './prebidAuction';
 import SmartAdserver from './smartAdserver';

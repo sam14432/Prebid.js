@@ -1,5 +1,5 @@
 /* eslint-disable */
-import find from 'core-js/library/fn/array/find';
+import find from 'core-js-pure/features/array/find.js';
 import AuctionBase from './auctionBase';
 import Reloader from './reloader';
 import { isFunction } from './utils';
