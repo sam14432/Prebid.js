@@ -35,8 +35,6 @@ const _pageInfo = {
   yuktamediaAnalyticsVersion: yuktamediaAnalyticsVersion,
   prebidVersion: $$PREBID_GLOBAL$$.version
 };
-const localStoragePrefix = 'yuktamediaAnalytics_';
-const utmTags = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
 
 function getParameterByName(param) {
   let vars = {};

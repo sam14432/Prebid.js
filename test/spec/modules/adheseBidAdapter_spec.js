@@ -17,10 +17,9 @@ let minimalBid = function() {
   }
 };
 
-let bidWithParams = function(data, userId) {
+let bidWithParams = function(data) {
   let bid = minimalBid();
   bid.params.data = data;
-  bid.userId = userId;
   return bid;
 };
 

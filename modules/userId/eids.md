@@ -85,14 +85,15 @@ userIdAsEids = [
     },
 
     {
-        source: 'netid.de',
+        source: 'criteo.com',
         uids: [{
             id: 'some-random-id-value',
             atype: 1
         }]
     },
+
     {
-        source: 'sharedid.org',
+        source: 'netid.de',
         uids: [{
             id: 'some-random-id-value',
             atype: 1

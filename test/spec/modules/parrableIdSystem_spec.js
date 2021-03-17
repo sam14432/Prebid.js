@@ -375,69 +375,6 @@ describe('Parrable ID System', function() {
       } })).to.equal(null);
       expect(resolvedOptions.called).to.equal(true);
     });
-
-    it('should log an error and continue to callback if ajax request errors', function () {
-      let callBackSpy = sinon.spy();
-      let submoduleCallback = parrableIdSubmodule.getId({partner: 'prebid'}).callback;
-      submoduleCallback(callBackSpy);
-      let request = server.requests[0];
-      expect(request.url).to.contain('h.parrable.com');
-      request.respond(
-        503,
-        null,
-        'Unavailable'
-      );
-      expect(logErrorStub.calledOnce).to.be.true;
-      expect(callBackSpy.calledOnce).to.be.true;
-    });
-  });
-
-  describe('parrableIdSystem.getId() id', function() {
-    it('provides the stored Parrable values if a cookie exists', function() {
-      writeParrableCookie({ eid: P_COOKIE_EID });
-      let getIdResult = parrableIdSubmodule.getId(P_CONFIG_MOCK.params);
-      removeParrableCookie();
-
-      expect(getIdResult.id).to.deep.equal({
-        eid: P_COOKIE_EID
-      });
-    });
-
-    it('provides the stored legacy Parrable ID values if cookies exist', function() {
-      let oldEid = '01.111.old-eid';
-      let oldEidCookieName = '_parrable_eid';
-      let oldOptoutCookieName = '_parrable_optout';
-
-      storage.setCookie(oldEidCookieName, oldEid);
-      storage.setCookie(oldOptoutCookieName, 'true');
-
-      let getIdResult = parrableIdSubmodule.getId(P_CONFIG_MOCK.params);
-      expect(getIdResult.id).to.deep.equal({
-        eid: oldEid,
-        ibaOptout: true
-      });
-
-      // The ID system is expected to migrate old cookies to the new format
-      expect(storage.getCookie(P_COOKIE_NAME)).to.equal(
-        encodeURIComponent('eid:' + oldEid + ',ibaOptout:1')
-      );
-      expect(storage.getCookie(oldEidCookieName)).to.equal(null);
-      expect(storage.getCookie(oldOptoutCookieName)).to.equal(null);
-    });
-  });
-
-  describe('parrableIdSystem.decode()', function() {
-    it('provides the Parrable ID (EID) from a stored object', function() {
-      let eid = '01.123.4567890';
-      let parrableId = {
-        eid,
-        ibaOptout: true
-      };
-
-      expect(parrableIdSubmodule.decode(parrableId)).to.deep.equal({
-        parrableId
-      });
-    });
   });
 
   describe('timezone offset filtering', function() {

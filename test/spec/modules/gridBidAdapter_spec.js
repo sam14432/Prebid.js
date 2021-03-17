@@ -119,7 +119,7 @@ describe('TheMediaGrid Adapter', function () {
     ];
 
     it('should attach valid params to the tag', function () {
-      const [request] = spec.buildRequests([bidRequests[0]], bidderRequest);
+      const request = spec.buildRequests([bidRequests[0]], bidderRequest);
       expect(request.data).to.be.an('string');
       const payload = parseRequest(request.data);
       expect(payload).to.deep.equal({
@@ -463,418 +463,6 @@ describe('TheMediaGrid Adapter', function () {
         expect(payload.imp[0].bidfloor).to.equal(bidfloor);
       });
     });
-
-    it('should convert keyword params to proper form and attaches to request', function () {
-      const bidRequestWithKeywords = [].concat(bidRequests);
-      bidRequestWithKeywords[1] = Object.assign({},
-        bidRequests[1],
-        {
-          params: {
-            uid: '1',
-            keywords: {
-              single: 'val',
-              singleArr: ['val'],
-              singleArrNum: [3],
-              multiValMixed: ['value1', 2, 'value3'],
-              singleValNum: 123,
-              emptyStr: '',
-              emptyArr: [''],
-              badValue: {'foo': 'bar'} // should be dropped
-            }
-          }
-        }
-      );
-
-      const [request] = spec.buildRequests(bidRequestWithKeywords, bidderRequest);
-      expect(request.data).to.be.an('string');
-      const payload = parseRequest(request.data);
-      expect(payload.keywords).to.be.an('string');
-      payload.keywords = JSON.parse(payload.keywords);
-
-      expect(payload.keywords).to.deep.equal([{
-        'key': 'single',
-        'value': ['val']
-      }, {
-        'key': 'singleArr',
-        'value': ['val']
-      }, {
-        'key': 'singleArrNum',
-        'value': ['3']
-      }, {
-        'key': 'multiValMixed',
-        'value': ['value1', '2', 'value3']
-      }, {
-        'key': 'singleValNum',
-        'value': ['123']
-      }, {
-        'key': 'emptyStr'
-      }, {
-        'key': 'emptyArr'
-      }]);
-    });
-
-    it('should mix keyword param with keywords from config', function () {
-      const getConfigStub = sinon.stub(config, 'getConfig').callsFake(
-        arg => arg === 'fpd.user' ? {'keywords': ['a', 'b']} : arg === 'fpd.context' ? {'keywords': ['any words']} : null);
-
-      const bidRequestWithKeywords = [].concat(bidRequests);
-      bidRequestWithKeywords[1] = Object.assign({},
-        bidRequests[1],
-        {
-          params: {
-            uid: '1',
-            keywords: {
-              single: 'val',
-              singleArr: ['val'],
-              multiValMixed: ['value1', 2, 'value3']
-            }
-          }
-        }
-      );
-
-      const [request] = spec.buildRequests(bidRequestWithKeywords, bidderRequest);
-      expect(request.data).to.be.an('string');
-      const payload = parseRequest(request.data);
-      expect(payload.keywords).to.be.an('string');
-      payload.keywords = JSON.parse(payload.keywords);
-
-      expect(payload.keywords).to.deep.equal([{
-        'key': 'single',
-        'value': ['val']
-      }, {
-        'key': 'singleArr',
-        'value': ['val']
-      }, {
-        'key': 'multiValMixed',
-        'value': ['value1', '2', 'value3']
-      }, {
-        'key': 'user',
-        'value': ['a', 'b']
-      }, {
-        'key': 'context',
-        'value': ['any words']
-      }]);
-
-      getConfigStub.restore();
-    });
-  });
-
-  describe('buildRequests in new format', function () {
-    function parseRequest(data) {
-      return JSON.parse(data);
-    }
-    const bidderRequest = {
-      refererInfo: {referer: 'https://example.com'},
-      bidderRequestId: '22edbae2733bf6',
-      auctionId: '9e2dfbfe-00c7-4f5e-9850-4044df3229c7',
-      timeout: 3000
-    };
-    const referrer = encodeURIComponent(bidderRequest.refererInfo.referer);
-    let bidRequests = [
-      {
-        'bidder': 'grid',
-        'params': {
-          'uid': '1',
-          'useNewFormat': true
-        },
-        'adUnitCode': 'adunit-code-1',
-        'sizes': [[300, 250], [300, 600]],
-        'mediaTypes': {
-          'banner': {
-            'sizes': [[300, 250], [300, 600]]
-          }
-        },
-        'bidId': '42dbe3a7168a6a',
-        'bidderRequestId': '22edbae2733bf6',
-        'auctionId': '9e2dfbfe-00c7-4f5e-9850-4044df3229c7',
-      },
-      {
-        'bidder': 'grid',
-        'params': {
-          'uid': '2',
-          'useNewFormat': true
-        },
-        'adUnitCode': 'adunit-code-1',
-        'sizes': [[300, 250], [300, 600]],
-        'bidId': '30b31c1838de1e',
-        'bidderRequestId': '22edbae2733bf6',
-        'auctionId': '9e2dfbfe-00c7-4f5e-9850-4044df3229c7',
-      },
-      {
-        'bidder': 'grid',
-        'params': {
-          'uid': '11',
-          'useNewFormat': true
-        },
-        'adUnitCode': 'adunit-code-2',
-        'sizes': [[728, 90]],
-        'mediaTypes': {
-          'video': {
-            'playerSize': [[400, 600]],
-            'mimes': ['video/mp4', 'video/webm', 'application/javascript', 'video/ogg']
-          }
-        },
-        'bidId': '3150ccb55da321',
-        'bidderRequestId': '22edbae2733bf6',
-        'auctionId': '9e2dfbfe-00c7-4f5e-9850-4044df3229c7',
-      },
-      {
-        'bidder': 'grid',
-        'params': {
-          'uid': '3',
-          'useNewFormat': true
-        },
-        'adUnitCode': 'adunit-code-2',
-        'sizes': [[728, 90]],
-        'mediaTypes': {
-          'video': {
-            'playerSize': [[400, 600]]
-          },
-          'banner': {
-            'sizes': [[728, 90]]
-          }
-        },
-        'bidId': '3150ccb55da321',
-        'bidderRequestId': '22edbae2733bf6',
-        'auctionId': '9e2dfbfe-00c7-4f5e-9850-4044df3229c7',
-      }
-    ];
-
-    it('should attach valid params to the tag', function () {
-      const [request] = spec.buildRequests([bidRequests[0]], bidderRequest);
-      expect(request.data).to.be.an('string');
-      const payload = parseRequest(request.data);
-      expect(payload).to.deep.equal({
-        'id': bidderRequest.bidderRequestId,
-        'site': {
-          'page': referrer
-        },
-        'tmax': bidderRequest.timeout,
-        'source': {
-          'tid': bidderRequest.auctionId,
-          'ext': {'wrapper': 'Prebid_js', 'wrapper_version': '$prebid.version$'}
-        },
-        'imp': [{
-          'id': bidRequests[0].bidId,
-          'tagid': bidRequests[0].params.uid,
-          'ext': {'divid': bidRequests[0].adUnitCode},
-          'banner': {
-            'w': 300,
-            'h': 250,
-            'format': [{'w': 300, 'h': 250}, {'w': 300, 'h': 600}]
-          }
-        }]
-      });
-    });
-
-    it('make possible to process request without mediaTypes', function () {
-      const [request] = spec.buildRequests([bidRequests[0], bidRequests[1]], bidderRequest);
-      expect(request.data).to.be.an('string');
-      const payload = parseRequest(request.data);
-      expect(payload).to.deep.equal({
-        'id': bidderRequest.bidderRequestId,
-        'site': {
-          'page': referrer
-        },
-        'tmax': bidderRequest.timeout,
-        'source': {
-          'tid': bidderRequest.auctionId,
-          'ext': {'wrapper': 'Prebid_js', 'wrapper_version': '$prebid.version$'}
-        },
-        'imp': [{
-          'id': bidRequests[0].bidId,
-          'tagid': bidRequests[0].params.uid,
-          'ext': {'divid': bidRequests[0].adUnitCode},
-          'banner': {
-            'w': 300,
-            'h': 250,
-            'format': [{'w': 300, 'h': 250}, {'w': 300, 'h': 600}]
-          }
-        }, {
-          'id': bidRequests[1].bidId,
-          'tagid': bidRequests[1].params.uid,
-          'ext': {'divid': bidRequests[1].adUnitCode},
-          'banner': {
-            'w': 300,
-            'h': 250,
-            'format': [{'w': 300, 'h': 250}, {'w': 300, 'h': 600}]
-          }
-        }]
-      });
-    });
-
-    it('should attach valid params to the video tag', function () {
-      const [request] = spec.buildRequests(bidRequests.slice(0, 3), bidderRequest);
-      expect(request.data).to.be.an('string');
-      const payload = parseRequest(request.data);
-      expect(payload).to.deep.equal({
-        'id': bidderRequest.bidderRequestId,
-        'site': {
-          'page': referrer
-        },
-        'tmax': bidderRequest.timeout,
-        'source': {
-          'tid': bidderRequest.auctionId,
-          'ext': {'wrapper': 'Prebid_js', 'wrapper_version': '$prebid.version$'}
-        },
-        'imp': [{
-          'id': bidRequests[0].bidId,
-          'tagid': bidRequests[0].params.uid,
-          'ext': {'divid': bidRequests[0].adUnitCode},
-          'banner': {
-            'w': 300,
-            'h': 250,
-            'format': [{'w': 300, 'h': 250}, {'w': 300, 'h': 600}]
-          }
-        }, {
-          'id': bidRequests[1].bidId,
-          'tagid': bidRequests[1].params.uid,
-          'ext': {'divid': bidRequests[1].adUnitCode},
-          'banner': {
-            'w': 300,
-            'h': 250,
-            'format': [{'w': 300, 'h': 250}, {'w': 300, 'h': 600}]
-          }
-        }, {
-          'id': bidRequests[2].bidId,
-          'tagid': bidRequests[2].params.uid,
-          'ext': {'divid': bidRequests[2].adUnitCode},
-          'video': {
-            'w': 400,
-            'h': 600,
-            'mimes': ['video/mp4', 'video/webm', 'application/javascript', 'video/ogg']
-          }
-        }]
-      });
-    });
-
-    it('should support mixed mediaTypes', function () {
-      const [request] = spec.buildRequests(bidRequests, bidderRequest);
-      expect(request.data).to.be.an('string');
-      const payload = parseRequest(request.data);
-      expect(payload).to.deep.equal({
-        'id': bidderRequest.bidderRequestId,
-        'site': {
-          'page': referrer
-        },
-        'tmax': bidderRequest.timeout,
-        'source': {
-          'tid': bidderRequest.auctionId,
-          'ext': {'wrapper': 'Prebid_js', 'wrapper_version': '$prebid.version$'}
-        },
-        'imp': [{
-          'id': bidRequests[0].bidId,
-          'tagid': bidRequests[0].params.uid,
-          'ext': {'divid': bidRequests[0].adUnitCode},
-          'banner': {
-            'w': 300,
-            'h': 250,
-            'format': [{'w': 300, 'h': 250}, {'w': 300, 'h': 600}]
-          }
-        }, {
-          'id': bidRequests[1].bidId,
-          'tagid': bidRequests[1].params.uid,
-          'ext': {'divid': bidRequests[1].adUnitCode},
-          'banner': {
-            'w': 300,
-            'h': 250,
-            'format': [{'w': 300, 'h': 250}, {'w': 300, 'h': 600}]
-          }
-        }, {
-          'id': bidRequests[2].bidId,
-          'tagid': bidRequests[2].params.uid,
-          'ext': {'divid': bidRequests[2].adUnitCode},
-          'video': {
-            'w': 400,
-            'h': 600,
-            'mimes': ['video/mp4', 'video/webm', 'application/javascript', 'video/ogg'],
-          }
-        }, {
-          'id': bidRequests[3].bidId,
-          'tagid': bidRequests[3].params.uid,
-          'ext': {'divid': bidRequests[3].adUnitCode},
-          'banner': {
-            'w': 728,
-            'h': 90,
-            'format': [{'w': 728, 'h': 90}]
-          },
-          'video': {
-            'w': 400,
-            'h': 600
-          }
-        }]
-      });
-    });
-
-    it('if gdprConsent is present payload must have gdpr params', function () {
-      const gdprBidderRequest = Object.assign({gdprConsent: {consentString: 'AAA', gdprApplies: true}}, bidderRequest);
-      const [request] = spec.buildRequests(bidRequests, gdprBidderRequest);
-      expect(request.data).to.be.an('string');
-      const payload = parseRequest(request.data);
-      expect(payload).to.have.property('user');
-      expect(payload.user).to.have.property('ext');
-      expect(payload.user.ext).to.have.property('consent', 'AAA');
-      expect(payload).to.have.property('regs');
-      expect(payload.regs).to.have.property('ext');
-      expect(payload.regs.ext).to.have.property('gdpr', 1);
-    });
-
-    it('if usPrivacy is present payload must have us_privacy param', function () {
-      const bidderRequestWithUSP = Object.assign({uspConsent: '1YNN'}, bidderRequest);
-      const [request] = spec.buildRequests(bidRequests, bidderRequestWithUSP);
-      expect(request.data).to.be.an('string');
-      const payload = parseRequest(request.data);
-      expect(payload).to.have.property('regs');
-      expect(payload.regs).to.have.property('ext');
-      expect(payload.regs.ext).to.have.property('us_privacy', '1YNN');
-    });
-
-    it('if userId is present payload must have user.ext param with right keys', function () {
-      const bidRequestsWithUserIds = bidRequests.map((bid) => {
-        return Object.assign({
-          userId: {
-            id5id: 'id5id_1',
-            tdid: 'tdid_1',
-            digitrustid: {data: {id: 'DTID', keyv: 4, privacy: {optout: false}, producer: 'ABC', version: 2}},
-            lipb: {lipbid: 'lipb_1'}
-          }
-        }, bid);
-      });
-      const [request] = spec.buildRequests(bidRequestsWithUserIds, bidderRequest);
-      expect(request.data).to.be.an('string');
-      const payload = parseRequest(request.data);
-      expect(payload).to.have.property('user');
-      expect(payload.user).to.have.property('ext');
-      expect(payload.user.ext).to.have.property('unifiedid', 'tdid_1');
-      expect(payload.user.ext).to.have.property('id5id', 'id5id_1');
-      expect(payload.user.ext).to.have.property('digitrustid', 'DTID');
-      expect(payload.user.ext).to.have.property('liveintentid', 'lipb_1');
-    });
-
-    it('if schain is present payload must have source.ext.schain param', function () {
-      const schain = {
-        complete: 1,
-        nodes: [
-          {
-            asi: 'indirectseller.com',
-            sid: '00001',
-            hp: 1
-          }
-        ]
-      };
-      const bidRequestsWithSChain = bidRequests.map((bid) => {
-        return Object.assign({
-          schain: schain
-        }, bid);
-      });
-      const [request] = spec.buildRequests(bidRequestsWithSChain, bidderRequest);
-      expect(request.data).to.be.an('string');
-      const payload = parseRequest(request.data);
-      expect(payload).to.have.property('source');
-      expect(payload.source).to.have.property('ext');
-      expect(payload.source.ext).to.have.property('schain');
-      expect(payload.source.ext.schain).to.deep.equal(schain);
-    });
   });
 
   describe('interpretResponse', function () {
@@ -903,7 +491,7 @@ describe('TheMediaGrid Adapter', function () {
           'auctionId': '1cbd2feafe5e8b',
         }
       ];
-      const [request] = spec.buildRequests(bidRequests);
+      const request = spec.buildRequests(bidRequests);
       const expectedResponse = [
         {
           'requestId': '659423fff799cb',
@@ -960,7 +548,7 @@ describe('TheMediaGrid Adapter', function () {
           'auctionId': '1fa09aee5c8c99',
         }
       ];
-      const [request] = spec.buildRequests(bidRequests);
+      const request = spec.buildRequests(bidRequests);
       const expectedResponse = [
         {
           'requestId': '659423fff799cb',
@@ -1046,7 +634,7 @@ describe('TheMediaGrid Adapter', function () {
         {'bid': [{'impid': '659423fff799cb', 'price': 1.15, 'adm': '<VAST version=\"3.0\">\n<Ad id=\"21341234\"><\/Ad>\n<\/VAST>', 'auid': 11, content_type: 'video', w: 300, h: 600}], 'seat': '2'},
         {'bid': [{'impid': '2bc598e42b6a', 'price': 1.00, 'adm': '<VAST version=\"3.0\">\n<Ad id=\"21331274\"><\/Ad>\n<\/VAST>', 'auid': 12, content_type: 'video'}], 'seat': '2'}
       ];
-      const [request] = spec.buildRequests(bidRequests);
+      const request = spec.buildRequests(bidRequests);
       const expectedResponse = [
         {
           'requestId': '659423fff799cb',
@@ -1122,7 +710,7 @@ describe('TheMediaGrid Adapter', function () {
           'auctionId': '1fa09aee5c84d34',
         }
       ];
-      const [request] = spec.buildRequests(bidRequests);
+      const request = spec.buildRequests(bidRequests);
       const result = spec.interpretResponse({'body': {'seatbid': responses.slice(2)}}, request);
       expect(result.length).to.equal(0);
     });
@@ -1192,7 +780,7 @@ describe('TheMediaGrid Adapter', function () {
           'auctionId': '32a1f276cb87cb8',
         }
       ];
-      const [request] = spec.buildRequests(bidRequests);
+      const request = spec.buildRequests(bidRequests);
       const expectedResponse = [
         {
           'requestId': '2164be6358b9',

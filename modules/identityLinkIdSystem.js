@@ -80,7 +80,6 @@ export const identityLinkSubmodule = {
 };
 // return envelope from third party endpoint
 function getEnvelope(url, callback) {
-  utils.logInfo('A 3P retrieval is attempted!');
   const callbacks = {
     success: response => {
       let responseObj;

@@ -284,45 +284,6 @@ describe('Richaudience adapter tests', function () {
     expect(requestContent.videoData).to.have.property('format').and.to.equal('outstream');
   })
 
-  it('Verify build request to prebid video inestream', function() {
-    const request = spec.buildRequests(DEFAULT_PARAMS_VIDEO_IN, {
-      gdprConsent: {
-        consentString: 'BOZcQl_ObPFjWAeABAESCD-AAAAjx7_______9______9uz_Ov_v_f__33e8__9v_l_7_-___u_-33d4-_1vf99yfm1-7ftr3tp_87ues2_Xur__59__3z3_NohBgA',
-        gdprApplies: true
-      },
-      refererInfo: {
-        referer: 'https://domain.com',
-        numIframes: 0
-      }
-    });
-
-    expect(request[0]).to.have.property('method').and.to.equal('POST');
-    const requestContent = JSON.parse(request[0].data);
-
-    expect(requestContent).to.have.property('demand').and.to.equal('video');
-    expect(requestContent.videoData).to.have.property('format').and.to.equal('instream');
-    // expect(requestContent.videoData.playerSize[0][0]).to.equal('640');
-    // expect(requestContent.videoData.playerSize[0][0]).to.equal('480');
-  })
-
-  it('Verify build request to prebid video outstream', function() {
-    const request = spec.buildRequests(DEFAULT_PARAMS_VIDEO_OUT, {
-      gdprConsent: {
-        consentString: 'BOZcQl_ObPFjWAeABAESCD-AAAAjx7_______9______9uz_Ov_v_f__33e8__9v_l_7_-___u_-33d4-_1vf99yfm1-7ftr3tp_87ues2_Xur__59__3z3_NohBgA',
-        gdprApplies: true
-      },
-      refererInfo: {
-        referer: 'https://domain.com',
-        numIframes: 0
-      }
-    });
-
-    expect(request[0]).to.have.property('method').and.to.equal('POST');
-    const requestContent = JSON.parse(request[0].data);
-
-    expect(requestContent.videoData).to.have.property('format').and.to.equal('outstream');
-  })
-
   describe('gdpr test', function () {
     it('Verify build request with GDPR', function () {
       config.setConfig({

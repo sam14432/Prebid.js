@@ -352,7 +352,7 @@ export function parseBidResponse(bid, previousBidResponse, auctionFloorData) {
   if (previousBidResponse && previousBidResponse.bidPriceUSD > responsePrice) {
     return previousBidResponse;
   }
-  let bidResponse = utils.pick(bid, [
+  return utils.pick(bid, [
     'bidPriceUSD', () => responsePrice,
     'dealId',
     'status',
@@ -371,11 +371,6 @@ export function parseBidResponse(bid, previousBidResponse, auctionFloorData) {
       return Array.isArray(adomains) && adomains.length > 0 ? adomains.slice(0, 10) : undefined
     }
   ]);
-  if (auctionFloorData) {
-    bidResponse.floorValue = utils.deepAccess(bid, 'floorData.floorValue');
-    bidResponse.floorRule = utils.debugTurnedOn() ? utils.deepAccess(bid, 'floorData.floorRule') : undefined
-  }
-  return bidResponse;
 }
 
 /*
@@ -683,7 +678,7 @@ let rubiconAdapter = Object.assign({}, baseAdapter, {
           utils.deepSetValue(bid, 'adUnit.gam.adSlot', args.floorData.matchedFields.gptSlot);
         }
         // if we have not set enforcements yet set it
-        if (auctionEntry.floorData && !auctionEntry.floorData.enforcements && utils.deepAccess(args, 'floorData.enforcements')) {
+        if (!utils.deepAccess(auctionEntry, 'floorData.enforcements') && utils.deepAccess(args, 'floorData.enforcements')) {
           auctionEntry.floorData.enforcements = {...args.floorData.enforcements};
         }
         if (!bid) {

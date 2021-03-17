@@ -437,38 +437,6 @@ function getVendorConsents(vendorData) {
   return null;
 }
 
-function getPurposeConsentsCounter(vendorData) {
-  if (vendorData.purpose && vendorData.purpose.consents) {
-    return 10;
-  }
-
-  return 5;
-}
-
-function getPurposeConsents(vendorData) {
-  if (vendorData.purpose && vendorData.purpose.consents) {
-    return vendorData.purpose.consents;
-  }
-
-  if (vendorData.purposeConsents) {
-    return vendorData.purposeConsents;
-  }
-
-  return null;
-}
-
-function getVendorConsents(vendorData) {
-  if (vendorData.vendor && vendorData.vendor.consents) {
-    return vendorData.vendor.consents;
-  }
-
-  if (vendorData.vendorConsents) {
-    return vendorData.vendorConsents;
-  }
-
-  return null;
-}
-
 const ivLogger = initLogger();
 
 /// Local domain cookie management =====================

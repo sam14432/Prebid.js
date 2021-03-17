@@ -110,7 +110,7 @@ describe('User ID', function () {
       sinon.spy(coreStorage, 'setCookie');
     });
 
-    afterEach(function() {
+    afterEach(function () {
       $$PREBID_GLOBAL$$.requestBids.removeAll();
       config.resetConfig();
       coreStorage.setCookie.restore();
@@ -121,7 +121,7 @@ describe('User ID', function () {
       coreStorage.setCookie('pubcid_alt', '', EXPIRED_COOKIE_DATE);
     });
 
-    it('Check same cookie behavior', function() {
+    it('Check same cookie behavior', function () {
       let adUnits1 = [getAdUnitMock()];
       let adUnits2 = [getAdUnitMock()];
       let innerAdUnits1;
@@ -156,7 +156,7 @@ describe('User ID', function () {
       assert.deepEqual(innerAdUnits1, innerAdUnits2);
     });
 
-    it('Check different cookies', function() {
+    it('Check different cookies', function () {
       let adUnits1 = [getAdUnitMock()];
       let adUnits2 = [getAdUnitMock()];
       let innerAdUnits1;
@@ -207,7 +207,7 @@ describe('User ID', function () {
       expect(pubcid1).to.not.equal(pubcid2);
     });
 
-    it('Use existing cookie', function() {
+    it('Use existing cookie', function () {
       let adUnits = [getAdUnitMock()];
       let innerAdUnits;
 
@@ -232,7 +232,7 @@ describe('User ID', function () {
       expect(coreStorage.setCookie.callCount).to.equal(1);
     });
 
-    it('Extend cookie', function() {
+    it('Extend cookie', function () {
       let adUnits = [getAdUnitMock()];
       let innerAdUnits;
       let customConfig = getConfigMock(['pubCommonId', 'pubcid_alt', 'cookie']);
@@ -259,7 +259,7 @@ describe('User ID', function () {
       expect(coreStorage.setCookie.callCount).to.equal(2);
     });
 
-    it('Disable auto create', function() {
+    it('Disable auto create', function () {
       let adUnits = [getAdUnitMock()];
       let innerAdUnits;
       let customConfig = getConfigMock(['pubCommonId', 'pubcid', 'cookie']);
@@ -419,11 +419,11 @@ describe('User ID', function () {
       coreStorage.setCookie(PBJS_USER_ID_OPTOUT_NAME, '1', (new Date(Date.now() + 5000).toUTCString()));
     });
 
-    beforeEach(function() {
+    beforeEach(function () {
       sinon.stub(utils, 'logInfo');
     });
 
-    afterEach(function() {
+    afterEach(function () {
       // removed cookie
       coreStorage.setCookie(PBJS_USER_ID_OPTOUT_NAME, '', EXPIRED_COOKIE_DATE);
       $$PREBID_GLOBAL$$.requestBids.removeAll();
@@ -438,7 +438,7 @@ describe('User ID', function () {
       expect(utils.logInfo.args[0][0]).to.exist.and.to.equal('User ID - opt-out cookie found, exit module');
     });
 
-    it('initializes if no opt out cookie exists', function() {
+    it('initializes if no opt out cookie exists', function () {
       setSubmoduleRegistry([pubCommonIdSubmodule]);
       init(config);
       config.setConfig(getConfigMock(['pubCommonId', 'pubcid', 'cookie']));
@@ -446,12 +446,12 @@ describe('User ID', function () {
     });
   });
 
-  describe('Handle variations of config values', function() {
-    beforeEach(function() {
+  describe('Handle variations of config values', function () {
+    beforeEach(function () {
       sinon.stub(utils, 'logInfo');
     });
 
-    afterEach(function() {
+    afterEach(function () {
       $$PREBID_GLOBAL$$.requestBids.removeAll();
       utils.logInfo.restore();
       config.resetConfig();
@@ -645,7 +645,7 @@ describe('User ID', function () {
       attachIdSystem(mockIdSystem, true);
     });
 
-    afterEach(function() {
+    afterEach(function () {
       $$PREBID_GLOBAL$$.requestBids.removeAll();
       config.resetConfig();
       sandbox.restore();
@@ -1323,8 +1323,6 @@ describe('User ID', function () {
         done();
       }, {adUnits});
     });
-    it('test hook from sharedId cookie (id not synced) ', function(done) {
-      coreStorage.setCookie('sharedid', JSON.stringify({'id': 'test_sharedId', 'ns': true, 'ts': 1590525289611}), (new Date(Date.now() + 100000).toUTCString()));
 
     it('test hook from pubProvidedId config params', function (done) {
       setSubmoduleRegistry([pubProvidedIdSubmodule]);
@@ -1419,7 +1417,6 @@ describe('User ID', function () {
             });
           });
         });
-        coreStorage.setCookie('sharedid', '', EXPIRED_COOKIE_DATE);
         done();
       }, {adUnits});
     });
@@ -2172,7 +2169,7 @@ describe('User ID', function () {
       delete window.__tcfapi;
     });
 
-    it('pubcid callback with url', function() {
+    it('pubcid callback with url', function () {
       let adUnits = [getAdUnitMock()];
       let innerAdUnits;
       let customCfg = getConfigMock(['pubCommonId', 'pubcid', 'cookie']);
@@ -2190,7 +2187,7 @@ describe('User ID', function () {
       expect(utils.triggerPixel.getCall(0).args[0]).to.include('/any/pubcid/url');
     });
 
-    it('unifiedid callback with url', function() {
+    it('unifiedid callback with url', function () {
       let adUnits = [getAdUnitMock()];
       let innerAdUnits;
       let customCfg = getConfigMock(['unifiedId', 'unifiedid', 'cookie']);
@@ -2208,7 +2205,7 @@ describe('User ID', function () {
       expect(server.requests[0].url).to.equal('/any/unifiedid/url');
     });
 
-    it('unifiedid callback with partner', function() {
+    it('unifiedid callback with partner', function () {
       let adUnits = [getAdUnitMock()];
       let innerAdUnits;
       let customCfg = getConfigMock(['unifiedId', 'unifiedid', 'cookie']);
@@ -2225,7 +2222,6 @@ describe('User ID', function () {
       events.emit(CONSTANTS.EVENTS.AUCTION_END, {});
       expect(server.requests[0].url).to.equal('https://match.adsrvr.org/track/rid?ttd_pid=rubicon&fmt=json');
     });
-  });
 
     it('verify sharedid callback via pubcid when enabled', function () {
       let adUnits = [getAdUnitMock()];
@@ -2332,47 +2328,7 @@ describe('User ID', function () {
             1: true
           }
         }
-      }
-      setStoredValue(submodule, 'bar');
-      expect(coreStorage.setCookie.getCall(0).args[4]).to.equal(null);
-    });
-  });
-
-  describe('Consent changes determine getId refreshes', function() {
-    let expStr;
-    let adUnits;
-
-    const mockIdCookieName = 'MOCKID';
-    let mockGetId = sinon.stub();
-    let mockDecode = sinon.stub();
-    let mockExtendId = sinon.stub();
-    const mockIdSystem = {
-      name: 'mockId',
-      getId: mockGetId,
-      decode: mockDecode,
-      extendId: mockExtendId
-    };
-    const userIdConfig = {
-      userSync: {
-        userIds: [{
-          name: 'mockId',
-          storage: {
-            name: 'MOCKID',
-            type: 'cookie',
-            refreshInSeconds: 30
-          }
-        }],
-        auctionDelay: 5
-      }
-    };
-
-    let cmpStub;
-    let testConsentData;
-    const consentConfig = {
-      cmpApi: 'iab',
-      timeout: 7500,
-      allowAuctionWithoutConsent: false
-    };
+      };
 
       window.__tcfapi = function () { };
       sinon.stub(window, '__tcfapi').callsFake((...args) => {

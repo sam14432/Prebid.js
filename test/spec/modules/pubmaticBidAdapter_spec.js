@@ -1422,11 +1422,6 @@ describe('PubMatic adapter', function () {
           data = data.imp[0];
           expect(data.bidfloor).to.equal(1.5);
         });
-        const request = spec.buildRequests(bidRequests, {});
-        let data = JSON.parse(request.data);
-        expect(data.regs.coppa).to.equal(1);
-        sandbox.restore();
-      });
 
         it('kadfloor is passed as 3, use kadfloor as it is highest', function() {
           newRequest[0].params.kadfloor = '3.0';// yes, we want it as a string

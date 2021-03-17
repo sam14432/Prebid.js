@@ -150,7 +150,6 @@ export const spec = {
           default: return;
         }
       }
-      validImp && imp.push(impObj);
 
       let request = requestsMap[bid.params.publisher_id];
       if (!request) {

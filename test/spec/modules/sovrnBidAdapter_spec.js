@@ -338,6 +338,7 @@ describe('sovrnBidAdapter', function() {
       expect(payload.imp[0].bidfloor).to.equal(2.00)
     })
   });
+
   describe('interpretResponse', function () {
     let response;
     beforeEach(function () {

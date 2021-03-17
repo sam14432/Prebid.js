@@ -120,9 +120,6 @@ export const spec = {
         ttl: 360,
         netRevenue: true
       };
-      if (rtbBid.dealid !== undefined) {
-        prBid.dealId = rtbBid.dealid;
-      }
       if ('banner' in imp) {
         prBid.mediaType = BANNER;
         prBid.width = rtbBid.w;

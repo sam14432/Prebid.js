@@ -612,27 +612,27 @@ var validResponse = {
 
 var validResponse2Bids = {
   'body': {
-    'id': '592ee33b-fb2e-4c00-b2d5-383e99cac57f',
+    'id': 'd6198807-7a53-4141-b2db-d2cb754d68ba',
     'seatbid': [
       {
         'bid': [
           {
-            'id': '4419718600113204943',
-            'impid': '2d30e86db743a8',
-            'price': 0.2484,
-            'adm': '<scr .. .iv>',
-            'adid': '119683582',
+            'id': '677903815252395017',
+            'impid': '2899ec066a91ff8',
+            'price': 0.5,
+            'adm': '<script src="https://fra1-ib.adnxs.com/ab?e=wqT_3QLXB6DXAwAAAwDWAAUBCNDh6dwFENjt4vTs9Y6bWhjxtI3siuOTmREqNgkAAAECCOA_EQEHNAAA4D8ZAAAAgOtR4D8hERIAKREJADERG6gwsqKiBjjtSEDtSEgCUI3J-y5YnPFbYABotc95eMuOBYABAYoBA1VTRJIBAQbwUpgBrAKgAdgEqAEBsAEAuAECwAEDyAEC0AEA2AEA4AEA8AEAigI7dWYoJ2EnLCAyNTI5ODg1LCAxNTM2ODQ4MDgwKTt1ZigncicsIDk4NDkzNTgxNh4A8JySAv0BIWJ6YWpPQWl1c0s0S0VJM0oteTRZQUNDYzhWc3dBRGdBUUFSSTdVaFFzcUtpQmxnQVlQX19fXzhQYUFCd0FYZ0JnQUVCaUFFQmtBRUJtQUVCb0FFQnFBRURzQUVBdVFFcGk0aURBQURnUDhFQktZdUlnd0FBNERfSkFUMDR0TTFxYXZFXzJRRUFBQUFBQUFEd1AtQUJBUFVCBQ8oSmdDQUtBQ0FMVUMFEARMMAkI8FBNQUNBY2dDQWRBQ0FkZ0NBZUFDQU9nQ0FQZ0NBSUFEQVpBREFKZ0RBYWdEcnJDdUNyb0RDVVpTUVRFNk16WTROT0FER2cuLpoCPSFLQXVvRkE2AAFwblBGYklBUW9BRG9KUmxKQk1Ub3pOamcwUUJwSkENAfBAOEQ4LsICL2h0dHA6Ly9wcmViaWQub3JnL2Rldi1kb2NzL2dldHRpbmctc3RhcnRlZC5odG1s2AIA4AKtmEjqAiINOthkZW1vLnRoZS1vem9uZS1wcm9qZWN0LmNvbS_yAhMKD0NVU1RPTV9NT0RFTF9JRBIA8gIaChZDLhYAIExFQUZfTkFNRQEdCB4KGjIzAPCHTEFTVF9NT0RJRklFRBIAgAMAiAMBkAMAmAMUoAMBqgMAwAOsAsgDANgDAOADAOgDAPgDA4AEAJIECS9vcGVucnRiMpgEAKIECTEyNy4wLjAuMagEALIEDAgAEAAYACAAMAA4ALgEAMAEAMgEANIEDjkzMjUjRlJBMTozNjg02gQCCAHgBADwBEHvIIgFAZgFAKAF_xEBsAGqBSRkNjE5ODgwNy03YTUzLTQxNDEtYjJkYi1kMmNiNzU0ZDY4YmHABQDJBWlQFPA_0gUJCQkMpAAA2AUB4AUB8AWZ9CH6BQQIABAAkAYAmAYAuAYAwQYAAAAAAAAAAMgGAA..&s=ab84b182eef7d9b4e58c74fe8987705c25ed803c&referrer=http%3A%2F%2Fdemo.the-ozone-project.com%2F&pp=${AUCTION_PRICE}"></script>',
+            'adid': '98493581',
             'adomain': [
-              'https://ozoneproject.com'
+              'http://prebid.org'
             ],
-            'iurl': 'https://ams1-ib.adnxs.com/cr?id=119683582',
-            'cid': '9979',
-            'crid': '119683582',
+            'iurl': 'https://fra1-ib.adnxs.com/cr?id=98493581',
+            'cid': '9325',
+            'crid': '98493581',
             'cat': [
-              'IAB3'
+              'IAB3-1'
             ],
             'w': 300,
-            'h': 250,
+            'h': 600,
             'ext': {
               'prebid': {
                 'type': 'banner'
@@ -1304,10 +1304,7 @@ var multiResponse1 = {
             'cat': [
               'IAB3'
             ],
-            'iurl': 'https://ams1-ib.adnxs.com/cr?id=120179216',
-            'cid': '9979',
-            'crid': '120179216',
-            'w': 970,
+            'w': 300,
             'h': 250,
             'ext': {
               'prebid': {
@@ -2022,7 +2019,7 @@ describe('ozone Adapter', function () {
         'id5id': '2222',
         'idl_env': '3333',
         'lipb': {'lipbid': '4444'},
-        'parrableId': {eid: 'eidVersion.encryptionKeyReference.encryptedValue'},
+        'parrableid': 'eidVersion.encryptionKeyReference.encryptedValue',
         'pubcid': '5555',
         'tdid': '6666'
       };
@@ -2043,7 +2040,7 @@ describe('ozone Adapter', function () {
         'id5id': '2222',
         'idl_env': '3333',
         'lipb': {'lipbid': '4444'},
-        'parrableId': {eid: 'eidVersion.encryptionKeyReference.encryptedValue'},
+        'parrableid': 'eidVersion.encryptionKeyReference.encryptedValue',
         // 'pubcid': '5555', // remove pubcid from here to emulate the OLD module & cause the failover code to kick in
         'tdid': '6666'
       };
@@ -2601,127 +2598,6 @@ describe('ozone Adapter', function () {
     it('should locate the video context inside a bid', function () {
       let result = spec.getVideoContextForBidId('2899ec066a91ff8', validBidRequestsWithNonBannerMediaTypesAndValidOutstreamVideo);
       expect(result).to.equal('outstream');
-    });
-  });
-  describe('unpackVideoConfigIntoIABformat', function() {
-    it('should correctly unpack a usual video config', function () {
-      let mediaTypes = {
-        playerSize: [640, 480],
-        mimes: ['video/mp4'],
-        context: 'outstream',
-        testKey: 'parent value'
-      };
-      let bid_params_video = {
-        skippable: true,
-        playback_method: ['auto_play_sound_off'],
-        playbackmethod: 2, /* start on load, no sound */
-        minduration: 5,
-        maxduration: 60,
-        skipmin: 5,
-        skipafter: 5,
-        testKey: 'child value'
-      };
-      let result = spec.unpackVideoConfigIntoIABformat(mediaTypes, bid_params_video);
-      expect(result.mimes).to.be.an('array').that.includes('video/mp4');
-      expect(result.ext.context).to.equal('outstream');
-      expect(result.ext.skippable).to.be.true; // note - we add skip in a different step: addVideoDefaults
-      expect(result.ext.testKey).to.equal('child value');
-    });
-  });
-  describe('addVideoDefaults', function() {
-    it('should correctly add video defaults', function () {
-      let mediaTypes = {
-        playerSize: [640, 480],
-        mimes: ['video/mp4'],
-        context: 'outstream',
-      };
-      let bid_params_video = {
-        skippable: true,
-        playback_method: ['auto_play_sound_off'],
-        playbackmethod: 2, /* start on load, no sound */
-        minduration: 5,
-        maxduration: 60,
-        skipmin: 5,
-        skipafter: 5,
-        testKey: 'child value'
-      };
-      let result = spec.addVideoDefaults({}, mediaTypes, mediaTypes);
-      expect(result.placement).to.equal(3);
-      expect(result.skip).to.equal(0);
-      result = spec.addVideoDefaults({}, mediaTypes, bid_params_video);
-      expect(result.skip).to.equal(1);
-    });
-    it('should correctly add video defaults including skippable in parent', function () {
-      let mediaTypes = {
-        playerSize: [640, 480],
-        mimes: ['video/mp4'],
-        context: 'outstream',
-        skippable: true
-      };
-      let bid_params_video = {
-        playback_method: ['auto_play_sound_off'],
-        playbackmethod: 2, /* start on load, no sound */
-        minduration: 5,
-        maxduration: 60,
-        skipmin: 5,
-        skipafter: 5,
-        testKey: 'child value'
-      };
-      let result = spec.addVideoDefaults({}, mediaTypes, bid_params_video);
-      expect(result.placement).to.equal(3);
-      expect(result.skip).to.equal(1);
-    });
-  });
-  describe('removeSingleBidderMultipleBids', function() {
-    it('should remove the multi bid by ozappnexus for adslot 2d30e86db743a8', function() {
-      let validres = JSON.parse(JSON.stringify(multiResponse1));
-      expect(validres.body.seatbid[0].bid.length).to.equal(3);
-      expect(validres.body.seatbid[0].seat).to.equal('ozappnexus');
-      let response = spec.removeSingleBidderMultipleBids(validres.body.seatbid);
-      expect(response.length).to.equal(2);
-      expect(response[0].bid.length).to.equal(2);
-      expect(response[0].seat).to.equal('ozappnexus');
-      expect(response[1].bid.length).to.equal(2);
-    });
-  });
-  describe('getPageId', function() {
-    it('should return the same Page ID for multiple calls', function () {
-      let result = spec.getPageId();
-      expect(result).to.be.a('string');
-      let result2 = spec.getPageId();
-      expect(result2).to.equal(result);
-    });
-  });
-  describe('getBidRequestForBidId', function() {
-    it('should locate a bid inside a bid array', function () {
-      let result = spec.getBidRequestForBidId('2899ec066a91ff8', validBidRequestsMulti);
-      expect(result.testId).to.equal(1);
-      result = spec.getBidRequestForBidId('2899ec066a91ff0', validBidRequestsMulti);
-      expect(result.testId).to.equal(2);
-    });
-  });
-  describe('getVideoContextForBidId', function() {
-    it('should locate the video context inside a bid', function () {
-      let result = spec.getVideoContextForBidId('2899ec066a91ff8', validBidRequestsWithNonBannerMediaTypesAndValidOutstreamVideo);
-      expect(result).to.equal('outstream');
-    });
-  });
-  describe('getLotameOverrideParams', function() {
-    it('should get 3 valid lotame params that exist in GET params', function () {
-      // mock the getGetParametersAsObject function to simulate GET parameters for lotame overrides:
-      spec.getGetParametersAsObject = function() {
-        return {'oz_lotameid': '123abc', 'oz_lotamepid': 'pid123', 'oz_lotametpid': 'tpid123'};
-      };
-      let result = spec.getLotameOverrideParams();
-      expect(Object.keys(result).length).to.equal(3);
-    });
-    it('should get only 1 valid lotame param that exists in GET params', function () {
-      // mock the getGetParametersAsObject function to simulate GET parameters for lotame overrides:
-      spec.getGetParametersAsObject = function() {
-        return {'oz_lotameid': '123abc', 'xoz_lotamepid': 'pid123', 'xoz_lotametpid': 'tpid123'};
-      };
-      let result = spec.getLotameOverrideParams();
-      expect(Object.keys(result).length).to.equal(1);
     });
   });
   describe('unpackVideoConfigIntoIABformat', function() {

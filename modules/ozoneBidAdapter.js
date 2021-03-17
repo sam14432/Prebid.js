@@ -470,23 +470,6 @@ export const spec = {
             if (bidderName.match(/^ozappnexus/)) {
               adserverTargeting[whitelabelPrefix + '_' + bidderName + '_sid'] = String(allBidsForThisBidid[bidderName].cid);
             }
-            if (addOzOmpFloorDollars) {
-              adserverTargeting['oz_' + bidderName + '_omp'] = allBidsForThisBidid[bidderName].price >= ozOmpFloorDollars ? '1' : '0';
-            }
-            if (isVideo) {
-              adserverTargeting['oz_' + bidderName + '_vid'] = videoContext; // outstream or instream
-            }
-            let flr = utils.deepAccess(allBidsForThisBidid[bidderName], 'ext.bidder.ozone.floor', null);
-            if (flr != null) {
-              adserverTargeting['oz_' + bidderName + '_flr'] = flr;
-            }
-            let rid = utils.deepAccess(allBidsForThisBidid[bidderName], 'ext.bidder.ozone.ruleId', null);
-            if (rid != null) {
-              adserverTargeting['oz_' + bidderName + '_rid'] = rid;
-            }
-            if (bidderName.match(/^ozappnexus/)) {
-              adserverTargeting['oz_' + bidderName + '_sid'] = String(allBidsForThisBidid[bidderName].cid);
-            }
           });
         } else {
           if (useOzWhitelistAdserverKeys) {
@@ -505,10 +488,6 @@ export const spec = {
         }
         if (useOzWhitelistAdserverKeys) { // delete any un-whitelisted keys
           this.logInfo('Going to filter out adserver targeting keys not in the whitelist: ', ozWhitelistAdserverKeys);
-          Object.keys(adserverTargeting).forEach(function(key) { if (ozWhitelistAdserverKeys.indexOf(key) === -1) { delete adserverTargeting[key]; } });
-        }
-        if (useOzWhitelistAdserverKeys) { // delete any un-whitelisted keys
-          utils.logInfo('OZONE: Going to filter out adserver targeting keys not in the whitelist: ', ozWhitelistAdserverKeys);
           Object.keys(adserverTargeting).forEach(function(key) { if (ozWhitelistAdserverKeys.indexOf(key) === -1) { delete adserverTargeting[key]; } });
         }
         thisBid.adserverTargeting = adserverTargeting;

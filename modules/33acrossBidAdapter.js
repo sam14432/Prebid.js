@@ -6,8 +6,6 @@ import {BANNER, VIDEO} from '../src/mediaTypes.js';
 const BIDDER_CODE = '33across';
 const END_POINT = 'https://ssc.33across.com/api/v1/hb';
 const SYNC_ENDPOINT = 'https://ssc-cms.33across.com/ps/?m=xch&rt=html&ru=deb';
-const MEDIA_TYPE = 'banner';
-const CURRENCY = 'USD';
 
 const CURRENCY = 'USD';
 const GUID_PATTERN = /^[a-zA-Z0-9_-]{22}$/;
@@ -259,24 +257,6 @@ function _transformSizes(sizes) {
   }
 
   return sizes.map(_getSize);
-}
-
-function _getBidFloors(getFloor, size) {
-  const bidFloors = getFloor({
-    currency: CURRENCY,
-    mediaType: MEDIA_TYPE,
-    size: [ size.w, size.h ]
-  });
-
-  if (!isNaN(bidFloors.floor) && (bidFloors.currency === CURRENCY)) {
-    return {
-      ext: {
-        ttx: {
-          bidfloors: [ bidFloors.floor ]
-        }
-      }
-    }
-  }
 }
 
 function _getSize(size) {

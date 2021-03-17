@@ -1121,22 +1121,5 @@ describe('gdpr enforcement', function () {
 
       expect(getGvlid('moduleA')).to.equal(7);
     });
-    it('should emit TCF2 enforcement data on auction end', function() {
-      const rules = [{
-        purpose: 'storage',
-        enforcePurpose: false,
-        enforceVendor: false
-      }, {
-        purpose: 'basicAds',
-        enforcePurpose: false,
-        enforceVendor: false
-      }]
-      setEnforcementConfig({gdpr: { rules }});
-
-      events.emit('auctionEnd', {})
-
-      // Assertions
-      sinon.assert.calledWith(events.emit.getCall(1), 'tcf2Enforcement', sinon.match.object);
-    })
   });
 });

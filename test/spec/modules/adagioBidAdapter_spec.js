@@ -677,6 +677,7 @@ describe('Adagio bid adapter', () => {
 
         expect(requests[0].data.regs.ccpa.uspConsent).to.equal(consent);
       });
+    });
 
     describe('without USPrivacy', function() {
       const bid01 = new BidRequestBuilder().withParams().build();

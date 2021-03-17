@@ -623,67 +623,6 @@ function createMissingBannerImp(imp, newSize) {
   return newImp;
 }
 
-/**
- *
- * @param  {array}   bannerSizeList list of banner sizes
- * @param  {array}   bannerSize the size to be removed
- * @return {boolean} true if succesfully removed, false if not found
- */
-
-function removeFromSizes(bannerSizeList, bannerSize) {
-  for (let i = 0; i < bannerSizeList.length; i++) {
-    if (bannerSize[0] == bannerSizeList[i][0] && bannerSize[1] == bannerSizeList[i][1]) {
-      bannerSizeList.splice(i, 1);
-      return true;
-    }
-  }
-  // size not found
-  return false;
-}
-
-/**
- * Updates the Object to track missing banner sizes.
- *
- * @param {object} validBidRequest    The bid request for an ad unit's with a configured size.
- * @param {object} missingBannerSizes The object containing missing banner sizes
- * @param {object} imp                The impression for the bidrequest
- */
-function updateMissingSizes(validBidRequest, missingBannerSizes, imp) {
-  const transactionID = validBidRequest.transactionId;
-  if (missingBannerSizes.hasOwnProperty(transactionID)) {
-    let currentSizeList = [];
-    if (missingBannerSizes[transactionID].hasOwnProperty('missingSizes')) {
-      currentSizeList = missingBannerSizes[transactionID].missingSizes;
-    }
-    removeFromSizes(currentSizeList, validBidRequest.params.size);
-    missingBannerSizes[transactionID].missingSizes = currentSizeList;
-  } else {
-    // New Ad Unit
-    if (utils.deepAccess(validBidRequest, 'mediaTypes.banner.sizes')) {
-      let sizeList = utils.deepClone(validBidRequest.mediaTypes.banner.sizes);
-      removeFromSizes(sizeList, validBidRequest.params.size);
-      let newAdUnitEntry = { 'missingSizes': sizeList,
-        'impression': imp
-      };
-      missingBannerSizes[transactionID] = newAdUnitEntry;
-    }
-  }
-}
-
-/**
- *
- * @param  {object} imp      Impression object to be modified
- * @param  {array}  newSize  The new size to be applied
- * @return {object} newImp   Updated impression object
- */
-function createMissingBannerImp(imp, newSize) {
-  const newImp = utils.deepClone(imp);
-  newImp.ext.sid = `${newSize[0]}x${newSize[1]}`;
-  newImp.banner.w = newSize[0];
-  newImp.banner.h = newSize[1];
-  return newImp;
-}
-
 export const spec = {
 
   code: BIDDER_CODE,
