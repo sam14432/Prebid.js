@@ -3,7 +3,7 @@ import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { BANNER } from '../src/mediaTypes.js';
 import { getStorageManager } from '../src/storageManager.js';
 
-const GLVID = 744;
+const GVLID = 744;
 const DEFAULT_SUB_DOMAIN = 'prebid';
 const BIDDER_CODE = 'vidazoo';
 const BIDDER_VERSION = '1.0.0';
@@ -12,14 +12,6 @@ const TTL_SECONDS = 60 * 5;
 const DEAL_ID_EXPIRY = 1000 * 60 * 15;
 const UNIQUE_DEAL_ID_EXPIRY = 1000 * 60 * 15;
 const SESSION_ID_KEY = 'vidSid';
-const INTERNAL_SYNC_TYPE = {
-  IFRAME: 'iframe',
-  IMAGE: 'img'
-};
-const EXTERNAL_SYNC_TYPE = {
-  IFRAME: 'iframe',
-  IMAGE: 'image'
-};
 export const SUPPORTED_ID_SYSTEMS = {
   'britepoolid': 1,
   'criteoId': 1,
@@ -32,7 +24,7 @@ export const SUPPORTED_ID_SYSTEMS = {
   'pubcid': 1,
   'tdid': 1,
 };
-const storage = getStorageManager(GLVID);
+const storage = getStorageManager(GVLID);
 
 export function createDomain(subDomain = DEFAULT_SUB_DOMAIN) {
   return `https://${subDomain}.cootlogix.com`;
@@ -125,6 +117,9 @@ function appendUserIdsToRequestPayload(payloadRef, userIds) {
         case 'parrableId':
           payloadRef[key] = userId.eid;
           break;
+        case 'id5id':
+          payloadRef[key] = userId.uid;
+          break;
         default:
           payloadRef[key] = userId;
       }
@@ -176,39 +171,97 @@ function interpretResponse(serverResponse, request) {
   }
 }
 
-function getUserSyncs(syncOptions, responses) {
+function getUserSyncs(syncOptions, responses, gdprConsent = {}, uspConsent = '') {
+  let syncs = [];
   const { iframeEnabled, pixelEnabled } = syncOptions;
-
+  const { gdprApplies, consentString = '' } = gdprConsent;
+  const params = `?gdpr=${gdprApplies ? 1 : 0}&gdpr_consent=${encodeURIComponent(consentString || '')}&us_privacy=${encodeURIComponent(uspConsent || '')}`
   if (iframeEnabled) {
-    return [{
+    syncs.push({
       type: 'iframe',
-      url: 'https://static.cootlogix.com/basev/sync/user_sync.html'
-    }];
-  }
-
-  if (pixelEnabled) {
-    const lookup = {};
-    const syncs = [];
-    responses.forEach(response => {
-      const { body } = response;
-      const results = body ? body.results || [] : [];
-      results.forEach(result => {
-        (result.cookies || []).forEach(cookie => {
-          if (cookie.type === INTERNAL_SYNC_TYPE.IMAGE) {
-            if (pixelEnabled && !lookup[cookie.src]) {
-              syncs.push({
-                type: EXTERNAL_SYNC_TYPE.IMAGE,
-                url: cookie.src
-              });
-            }
-          }
-        });
-      });
+      url: `https://prebid.cootlogix.com/api/sync/iframe/${params}`
     });
-    return syncs;
+  }
+  if (pixelEnabled) {
+    syncs.push({
+      type: 'image',
+      url: `https://prebid.cootlogix.com/api/sync/image/${params}`
+    });
+  }
+  return syncs;
+}
+
+export function hashCode(s, prefix = '_') {
+  const l = s.length;
+  let h = 0
+  let i = 0;
+  if (l > 0) {
+    while (i < l) { h = (h << 5) - h + s.charCodeAt(i++) | 0; }
+  }
+  return prefix + h;
+}
+
+export function getNextDealId(key, expiry = DEAL_ID_EXPIRY) {
+  try {
+    const data = getStorageItem(key);
+    let currentValue = 0;
+    let timestamp;
+
+    if (data && data.value && Date.now() - data.created < expiry) {
+      currentValue = data.value;
+      timestamp = data.created;
+    }
+
+    const nextValue = currentValue + 1;
+    setStorageItem(key, nextValue, timestamp);
+    return nextValue;
+  } catch (e) {
+    return 0;
+  }
+}
+
+export function getUniqueDealId(key, expiry = UNIQUE_DEAL_ID_EXPIRY) {
+  const storageKey = `u_${key}`;
+  const now = Date.now();
+  const data = getStorageItem(storageKey);
+  let uniqueId;
+
+  if (!data || !data.value || now - data.created > expiry) {
+    uniqueId = `${key}_${now.toString()}`;
+    setStorageItem(storageKey, uniqueId);
+  } else {
+    uniqueId = data.value;
   }
 
-  return [];
+  return uniqueId;
+}
+
+export function getVidazooSessionId() {
+  return getStorageItem(SESSION_ID_KEY) || '';
+}
+
+export function getStorageItem(key) {
+  try {
+    return tryParseJSON(storage.getDataFromLocalStorage(key));
+  } catch (e) { }
+
+  return null;
+}
+
+export function setStorageItem(key, value, timestamp) {
+  try {
+    const created = timestamp || Date.now();
+    const data = JSON.stringify({ value, created });
+    storage.setDataInLocalStorage(key, data);
+  } catch (e) { }
+}
+
+export function tryParseJSON(value) {
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    return value;
+  }
 }
 
 export function hashCode(s, prefix = '_') {
@@ -286,6 +339,7 @@ export function tryParseJSON(value) {
 
 export const spec = {
   code: BIDDER_CODE,
+  gvlid: GVLID,
   version: BIDDER_VERSION,
   supportedMediaTypes: [BANNER],
   isBidRequestValid,

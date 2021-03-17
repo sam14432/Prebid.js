@@ -11,12 +11,19 @@ describe('synacormediaBidAdapter ', function () {
         sizes: [300, 250],
         params: {
           seatId: 'prebid',
-          placementId: '1234'
+          tagId: '1234'
         }
       };
     });
 
     it('should return true when params placementId and seatId are truthy', function () {
+      bid.params.placementId = bid.params.tagId;
+      delete bid.params.tagId;
+      assert(spec.isBidRequestValid(bid));
+    });
+
+    it('should return true when params tagId and seatId are truthy', function () {
+      delete bid.params.placementId;
       assert(spec.isBidRequestValid(bid));
     });
 
@@ -35,8 +42,9 @@ describe('synacormediaBidAdapter ', function () {
       assert.isFalse(spec.isBidRequestValid(bid));
     });
 
-    it('should return false when placementId param is missing', function () {
+    it('should return false when both placementId param and tagId param are missing', function () {
       delete bid.params.placementId;
+      delete bid.params.tagId;
       assert.isFalse(spec.isBidRequestValid(bid));
     });
 
@@ -53,7 +61,7 @@ describe('synacormediaBidAdapter ', function () {
       sizes: [[300, 250], [300, 600]],
       params: {
         seatId: 'prebid',
-        placementId: '1234',
+        tagId: '1234',
         bidfloor: '0.50'
       }
     };
@@ -63,7 +71,7 @@ describe('synacormediaBidAdapter ', function () {
       sizes: [[300, 250], [300, 600]],
       params: {
         seatId: 'prebid',
-        placementId: '1234',
+        tagId: '1234',
         bidfloor: '0.50'
       },
       mediaTypes: {
@@ -84,7 +92,7 @@ describe('synacormediaBidAdapter ', function () {
       sizes: [[640, 480]],
       params: {
         seatId: 'prebid',
-        placementId: '1234',
+        tagId: '1234',
         bidfloor: '0.50'
       },
       mediaTypes: {
@@ -110,7 +118,7 @@ describe('synacormediaBidAdapter ', function () {
       bidder: 'synacormedia',
       params: {
         seatId: 'prebid',
-        placementId: '1234',
+        tagId: '1234',
         video: {
           minduration: 30
         }
@@ -163,7 +171,7 @@ describe('synacormediaBidAdapter ', function () {
       sizes: [[300, 250], [300, 600]],
       params: {
         seatId: 'prebid',
-        placementId: '1234',
+        tagId: '1234',
         bidfloor: '0.50'
       }
     };
@@ -230,7 +238,7 @@ describe('synacormediaBidAdapter ', function () {
         sizes: [[300, 600]],
         params: {
           seatId: validBidRequest.params.seatId,
-          placementId: '5678',
+          tagId: '5678',
           bidfloor: '0.50'
         }
       };
@@ -262,14 +270,14 @@ describe('synacormediaBidAdapter ', function () {
         sizes: [[300, 250]],
         params: {
           seatId: 'somethingelse',
-          placementId: '5678',
+          tagId: '5678',
           bidfloor: '0.50'
         }
       };
       let req = spec.buildRequests([mismatchedSeatBidRequest, validBidRequest], bidderRequest);
       expect(req).to.have.property('method', 'POST');
       expect(req).to.have.property('url');
-      expect(req.url).to.contain('https://prebid.technoratimedia.com/openrtb/bids/somethingelse?');
+      expect(req.url).to.contain('https://somethingelse.technoratimedia.com/openrtb/bids/somethingelse?');
       expect(req.data.id).to.equal('xyz123');
       expect(req.data.imp).to.eql([
         {
@@ -295,7 +303,7 @@ describe('synacormediaBidAdapter ', function () {
         sizes: [[300, 250]],
         params: {
           seatId: 'prebid',
-          placementId: '1234',
+          tagId: '1234',
           bidfloor: 'abcd'
         }
       };
@@ -327,7 +335,7 @@ describe('synacormediaBidAdapter ', function () {
         sizes: [[300, 250]],
         params: {
           seatId: 'prebid',
-          placementId: '1234'
+          tagId: '1234'
         }
       };
       let req = spec.buildRequests([badFloorBidRequest], bidderRequest);
@@ -358,7 +366,7 @@ describe('synacormediaBidAdapter ', function () {
         sizes: [[300, 250]],
         params: {
           seatId: 'prebid',
-          placementId: '1234',
+          tagId: '1234',
           pos: 1
         }
       };
@@ -390,7 +398,7 @@ describe('synacormediaBidAdapter ', function () {
         sizes: [[300, 250]],
         params: {
           seatId: 'prebid',
-          placementId: '1234',
+          tagId: '1234',
         }
       };
       let req = spec.buildRequests([newPosBidRequest], bidderRequest);
@@ -425,7 +433,7 @@ describe('synacormediaBidAdapter ', function () {
         sizes: [],
         params: {
           seatId: 'prebid',
-          placementId: '1234',
+          tagId: '1234',
           bidfloor: '0.50'
         }
       };
@@ -435,7 +443,7 @@ describe('synacormediaBidAdapter ', function () {
         sizes: [[300]],
         params: {
           seatId: 'prebid',
-          placementId: '1234',
+          tagId: '1234',
           bidfloor: '0.50'
         }
       };
@@ -457,7 +465,7 @@ describe('synacormediaBidAdapter ', function () {
         bidder: 'synacormedia',
         params: {
           seatId: 'prebid',
-          placementId: '1234',
+          tagId: '1234',
           video: {
             minduration: 30,
             maxduration: 45,
@@ -515,7 +523,7 @@ describe('synacormediaBidAdapter ', function () {
         bidder: 'synacormedia',
         params: {
           seatId: 'prebid',
-          placementId: '1234',
+          tagId: '1234',
           video: {
             minduration: 30,
             maxduration: 45,
@@ -582,12 +590,74 @@ describe('synacormediaBidAdapter ', function () {
     })
   });
 
+  describe('Bid Requests with placementId should be backward compatible ', function () {
+    let validVideoBidReq = {
+      bidder: 'synacormedia',
+      params: {
+        seatId: 'prebid',
+        placementId: 'demo1',
+        pos: 1,
+        video: {}
+      },
+      renderer: {
+        url: '../syncOutstreamPlayer.js'
+      },
+      mediaTypes: {
+        video: {
+          playerSize: [[300, 250]],
+          context: 'outstream'
+        }
+      },
+      adUnitCode: 'div-1',
+      transactionId: '0869f34e-090b-4b20-84ee-46ff41405a39',
+      sizes: [[300, 250]],
+      bidId: '22b3a2268d9f0e',
+      bidderRequestId: '1d195910597e13',
+      auctionId: '3375d336-2aea-4ee7-804c-6d26b621ad20',
+      src: 'client',
+      bidRequestsCount: 1,
+      bidderRequestsCount: 1,
+      bidderWinsCount: 0
+    };
+
+    let validBannerBidRequest = {
+      bidId: '9876abcd',
+      sizes: [[300, 250]],
+      params: {
+        seatId: 'prebid',
+        placementId: '1234',
+      }
+    };
+
+    let bidderRequest = {
+      refererInfo: {
+        referer: 'http://localhost:9999/'
+      },
+      bidderCode: 'synacormedia',
+      auctionId: 'f8a75621-d672-4cbb-9275-3db7d74fb110'
+    };
+
+    it('should return valid bid request for banner impression', function () {
+      let req = spec.buildRequests([validBannerBidRequest], bidderRequest);
+      expect(req).to.have.property('method', 'POST');
+      expect(req).to.have.property('url');
+      expect(req.url).to.contain('//prebid.technoratimedia.com/openrtb/bids/prebid?src=$$REPO_AND_VERSION$$');
+    });
+
+    it('should return valid bid request for video impression', function () {
+      let req = spec.buildRequests([validVideoBidReq], bidderRequest);
+      expect(req).to.have.property('method', 'POST');
+      expect(req).to.have.property('url');
+      expect(req.url).to.contain('//prebid.technoratimedia.com/openrtb/bids/prebid?src=$$REPO_AND_VERSION$$');
+    });
+  });
+
   describe('Bid Requests with schain object ', function() {
     let validBidReq = {
       bidder: 'synacormedia',
       params: {
         seatId: 'prebid',
-        placementId: 'demo1',
+        tagId: 'demo1',
         pos: 1,
         video: {}
       },
@@ -634,7 +704,7 @@ describe('synacormediaBidAdapter ', function () {
           bidder: 'synacormedia',
           params: {
             seatId: 'prebid',
-            placementId: 'demo1',
+            tagId: 'demo1',
             pos: 1,
             video: {}
           },
@@ -914,8 +984,123 @@ describe('synacormediaBidAdapter ', function () {
       });
 
       let resp = spec.interpretResponse(serverRespVideo, bidRequest);
-	  sandbox.restore();
-	  expect(resp[0].videoCacheKey).to.not.exist;
+	    sandbox.restore();
+	    expect(resp[0].videoCacheKey).to.not.exist;
+    });
+
+    it('should use video bid request height and width if not present in response', function () {
+      bidRequest = {
+        data: {
+          id: 'abcd1234',
+          imp: [
+            {
+              video: {
+                w: 300,
+                h: 250
+              },
+              id: 'v2da7322b2df61f'
+            }
+          ]
+        },
+        method: 'POST',
+        options: {
+          contentType: 'application/json',
+          withCredentials: true
+        },
+        url: 'https://prebid.technoratimedia.com/openrtb/bids/prebid?src=prebid_prebid_3.27.0-pre'
+      };
+
+      let serverRespVideo = {
+        body: {
+          id: 'abcd1234',
+          seatbid: [
+            {
+              bid: [
+                {
+                  id: '11339128001692337~9999~0',
+                  impid: 'v2da7322b2df61f',
+                  price: 0.45,
+                  nurl: 'https://uat-net.technoratimedia.com/openrtb/tags?ID=QVVDVElPTl9JRD1lOTBhYWU1My1hZDkwLTRkNDEtYTQxMC1lZDY1MjIxMDc0ZGMmQVVDVElPTl9CSURfSUQ9MTEzMzkxMjgwMDE2OTIzMzd-OTk5OX4wJkFVQ1RJT05fU0VBVF9JRD05OTk5JkFVQ1RJT05fSU1QX0lEPXYyZGE3MzIyYjJkZjYxZi02NDB4NDgwJkFDVE9SX1JFRj1ha2thLnRjcDovL2F3cy1lYXN0MUBhZHMxMy5jYXAtdXNlMS5zeW5hY29yLmNvbToyNTUxL3VzZXIvJGNMYmZiIy0xOTk4NTIzNTk3JlNFQVRfSUQ9cHJlYmlk&AUCTION_PRICE=${AUCTION_PRICE}',
+                  adm: '<?xml version="1.0" encoding="UTF-8"?>\n<VAST version="3.0">\n<Ad id="11339128001692337~9999~0">\n<Wrapper>\n<AdSystem>Synacor Media Ad Server - 9999</AdSystem>\n<VASTAdTagURI>https://uat-net.technoratimedia.com/openrtb/tags?ID=QVVDVElPTl9JRD1lOTBhYWU1My1hZDkwLTRkNDEtYTQxMC1lZDY1MjIxMDc0ZGMmQVVDVElPTl9CSURfSUQ9MTEzMzkxMjgwMDE2OTIzMzd-OTk5OX4wJkFVQ1RJT05fU0VBVF9JRD05OTk5JkFVQ1RJT05fSU1QX0lEPXYyZGE3MzIyYjJkZjYxZi02NDB4NDgwJkFDVE9SX1JFRj1ha2thLnRjcDovL2F3cy1lYXN0MUBhZHMxMy5jYXAtdXNlMS5zeW5hY29yLmNvbToyNTUxL3VzZXIvJGNMYmZiIy0xOTk4NTIzNTk3JlNFQVRfSUQ9cHJlYmlk&AUCTION_PRICE=${AUCTION_PRICE}</VASTAdTagURI>\n</Wrapper>\n</Ad>\n</VAST>',
+                  adomain: [ 'psacentral.org' ],
+                  cid: 'bidder-crid',
+                  crid: 'bidder-cid',
+                  cat: []
+                }
+              ],
+              seat: '9999'
+            }
+          ]
+        }
+      };
+      let resp = spec.interpretResponse(serverRespVideo, bidRequest);
+      expect(resp).to.be.an('array').to.have.lengthOf(1);
+      expect(resp[0]).to.eql({
+        requestId: '2da7322b2df61f',
+        adId: '11339128001692337-9999-0',
+        cpm: 0.45,
+        width: 300,
+        height: 250,
+        creativeId: '9999_bidder-cid',
+        currency: 'USD',
+        netRevenue: true,
+        mediaType: 'video',
+        ad: '<?xml version="1.0" encoding="UTF-8"?>\n<VAST version="3.0">\n<Ad id="11339128001692337~9999~0">\n<Wrapper>\n<AdSystem>Synacor Media Ad Server - 9999</AdSystem>\n<VASTAdTagURI>https://uat-net.technoratimedia.com/openrtb/tags?ID=QVVDVElPTl9JRD1lOTBhYWU1My1hZDkwLTRkNDEtYTQxMC1lZDY1MjIxMDc0ZGMmQVVDVElPTl9CSURfSUQ9MTEzMzkxMjgwMDE2OTIzMzd-OTk5OX4wJkFVQ1RJT05fU0VBVF9JRD05OTk5JkFVQ1RJT05fSU1QX0lEPXYyZGE3MzIyYjJkZjYxZi02NDB4NDgwJkFDVE9SX1JFRj1ha2thLnRjcDovL2F3cy1lYXN0MUBhZHMxMy5jYXAtdXNlMS5zeW5hY29yLmNvbToyNTUxL3VzZXIvJGNMYmZiIy0xOTk4NTIzNTk3JlNFQVRfSUQ9cHJlYmlk&AUCTION_PRICE=0.45</VASTAdTagURI>\n</Wrapper>\n</Ad>\n</VAST>',
+        ttl: 60,
+        videoCacheKey: 'QVVDVElPTl9JRD1lOTBhYWU1My1hZDkwLTRkNDEtYTQxMC1lZDY1MjIxMDc0ZGMmQVVDVElPTl9CSURfSUQ9MTEzMzkxMjgwMDE2OTIzMzd-OTk5OX4wJkFVQ1RJT05fU0VBVF9JRD05OTk5JkFVQ1RJT05fSU1QX0lEPXYyZGE3MzIyYjJkZjYxZi02NDB4NDgwJkFDVE9SX1JFRj1ha2thLnRjcDovL2F3cy1lYXN0MUBhZHMxMy5jYXAtdXNlMS5zeW5hY29yLmNvbToyNTUxL3VzZXIvJGNMYmZiIy0xOTk4NTIzNTk3JlNFQVRfSUQ9cHJlYmlk',
+        vastUrl: 'https://uat-net.technoratimedia.com/openrtb/tags?ID=QVVDVElPTl9JRD1lOTBhYWU1My1hZDkwLTRkNDEtYTQxMC1lZDY1MjIxMDc0ZGMmQVVDVElPTl9CSURfSUQ9MTEzMzkxMjgwMDE2OTIzMzd-OTk5OX4wJkFVQ1RJT05fU0VBVF9JRD05OTk5JkFVQ1RJT05fSU1QX0lEPXYyZGE3MzIyYjJkZjYxZi02NDB4NDgwJkFDVE9SX1JFRj1ha2thLnRjcDovL2F3cy1lYXN0MUBhZHMxMy5jYXAtdXNlMS5zeW5hY29yLmNvbToyNTUxL3VzZXIvJGNMYmZiIy0xOTk4NTIzNTk3JlNFQVRfSUQ9cHJlYmlk&AUCTION_PRICE=0.45'
+      });
+    });
+
+    it('should use banner bid request height and width if not present in response', function () {
+      bidRequest = {
+        data: {
+          id: 'abc123',
+          imp: [
+            {
+              banner: {
+                format: [{
+                  w: 400,
+                  h: 350
+                }]
+              },
+              id: 'babc123'
+            }
+          ]
+        },
+        method: 'POST',
+        options: {
+          contentType: 'application/json',
+          withCredentials: true
+        },
+        url: 'https://prebid.technoratimedia.com/openrtb/bids/prebid?src=prebid_prebid_3.27.0-pre'
+      };
+
+      bidResponse = {
+        id: '10865933907263896~9998~0',
+        impid: 'babc123',
+        price: 0.13,
+        crid: '1022-250',
+        adm: '<script src=\"//uat-net.technoratimedia.com/openrtb/tags?ID=k5JkFVQ1RJT05fSU1QX0lEPXYyZjczN&AUCTION_PRICE=${AUCTION_PRICE}\"></script>',
+        nurl: 'https://uat-net.technoratimedia.com/openrtb/tags?ID=k5JkFVQ1RJT05fSU1QX0lEPXYyZjczN&AUCTION_PRICE=${AUCTION_PRICE}',
+      };
+
+      serverResponse.body.seatbid[0].bid.push(bidResponse);
+      let resp = spec.interpretResponse(serverResponse, bidRequest);
+      expect(resp).to.be.an('array').to.have.lengthOf(1);
+      expect(resp[0]).to.eql({
+        requestId: 'abc123',
+        adId: '10865933907263896-9998-0',
+        cpm: 0.13,
+        width: 400,
+        height: 350,
+        creativeId: '9998_1022-250',
+        currency: 'USD',
+        netRevenue: true,
+        mediaType: BANNER,
+        ad: '<script src=\"//uat-net.technoratimedia.com/openrtb/tags?ID=k5JkFVQ1RJT05fSU1QX0lEPXYyZjczN&AUCTION_PRICE=0.13\"></script>',
+        ttl: 60
+      });
     });
 
     it('should use video bid request height and width if not present in response', function () {
